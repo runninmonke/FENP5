@@ -6,7 +6,7 @@ var neighborhood = {
 	},
 	locality: "Omaha, NE"
 };
-var places = {
+var locationData = {
 	home: {
 		name: "Home",
 		address: "1316 N 40th St, Omaha, NE 68131"
@@ -33,6 +33,17 @@ var places = {
 	}
 };
 
+var Place = function(data) {
+	for (item in data) {
+		if (data.hasOwnProperty(item)){
+			this[item] = data[item];
+		}
+	}
+	this.active = ko.observable(true);
+	//TODO marker();
+	//TODO latLong();
+}
+
 var map;
 var initMap = function() {
 	map = new google.maps.Map(document.getElementById('map'), {
@@ -58,12 +69,22 @@ var getLatLong = function(address) {
 
 var viewModel = function() {
 	self = this;
-	var workingArray = [];
-	for (i in places) {
-		workingArray.push(places[i]);
+	self.places = [];
+
+	for (i in locationData) {
+		self.places.push(new Place(locationData[i]));
 	}
-	self.activePlaces = ko.observableArray(workingArray);
-	console.log(workingArray, self.activePlaces());
+
+
+	self.activePlaces = ko.computed(function(){
+		var workingArray = [];
+		for (i in self.places) {
+			if (self.places[i].active()) {
+				workingArray.push(self.places[i]);
+			}
+		}
+		return workingArray;
+	});
 };
 
 
