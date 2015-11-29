@@ -1,0 +1,122 @@
+html, body {
+  	height: 100%;
+  	width: 100%;
+  	margin: 0;
+  	padding: 0;
+  	background-color: #E9E5DC;
+}
+
+.row {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.col-1 {
+    width: 8.33%;
+}
+
+.col-2 {
+    width: 16.66%;
+}
+
+.col-3 {
+    width: 25%;
+}
+
+.col-4 {
+    width: 33.33%;
+}
+
+.col-5 {
+    width: 41.66%;
+}
+
+.col-6 {
+    width: 50%;
+}
+
+.col-7 {
+    width: 58.33%;
+}
+
+.col-8 {
+    width: 66.66%;
+}
+
+.col-9 {
+    width: 75%;
+}
+
+.col-10 {
+    width: 83.33%;
+    height: 100%;
+}
+
+.col-11 {
+    width: 91.66%;
+}
+
+.col-12 {
+    width: 100%;
+}
+
+.mapstyle {
+	background-color: #FFFFFF;
+	margin: 5px;
+	padding: 0px;
+}
+
+#landmark-menu{
+	height: 10%;
+}
+
+.landmarks {
+	position: relative;
+}
+
+.landmarks ul {
+	list-style-type: none;
+	list-style-image: none;
+}
+
+.landmarks li {
+	display: inline;
+	background-color: #FFFFFF;
+	margin: 5px;
+	padding: 5px;
+}
+
+#info-window {
+	position: relative;
+	float: right;
+	height: 100%;
+}
+
+#map {
+	height: 90%;
+  width: 100%;
+}
+
+#gui {
+  height: 100%;
+}
+
+.hidden {
+  height: 100%;
+  display: none;
+}
+.nav-bar {
+  position: relative;
+  height: 10%;
+  width: 100%;
+  z-index: 1;
+}
+
+#search-bar {
+  background-color: grey;
+}
+
+#location-list {
+}
+
