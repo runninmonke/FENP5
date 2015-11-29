@@ -58,6 +58,12 @@ var getLatLong = function(address) {
 
 var viewModel = function() {
 	self = this;
+	var workingArray = [];
+	for (i in places) {
+		workingArray.push(places[i]);
+	}
+	self.activePlaces = ko.observableArray(workingArray);
+	console.log(workingArray, self.activePlaces());
 };
 
 
