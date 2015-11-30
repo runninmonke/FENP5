@@ -20,7 +20,7 @@
 				</div>
 				<div class="col-10">
 					<ul id="location-list" data-bind="foreach: activePlaces">
-						<li data-bind="text: name"></li>
+						<li data-bind="text: name, click: $parent.changePlace, attr: {class: status}"></li>
 					</ul>
 				</div>
 			</div>

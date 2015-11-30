@@ -40,6 +40,7 @@ var Place = function(data) {
 		}
 	}
 	this.active = ko.observable(true);
+	this.status = ko.observable('deselected');
 	//TODO marker();
 	//TODO latLong();
 }
@@ -76,7 +77,7 @@ var viewModel = function() {
 	}
 
 
-	self.activePlaces = ko.computed(function(){
+	self.activePlaces = ko.computed(function() {
 		var workingArray = [];
 		for (i in self.places) {
 			if (self.places[i].active()) {
@@ -85,6 +86,15 @@ var viewModel = function() {
 		}
 		return workingArray;
 	});
+
+	self.selectedPlace = ko.observable();
+	self.changePlace = function(place) {
+		if (typeof self.selectedPlace() == 'object') {
+			self.selectedPlace().status('deselected');
+		}
+		self.selectedPlace(place);
+		self.selectedPlace().status('selected');
+	}
 };
 
 

@@ -129,3 +129,7 @@ html, body {
   padding: 1em;
 }
 
+.selected {
+  background-color: grey;
+}
+
