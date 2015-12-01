@@ -1,3 +1,5 @@
+'use strict'
+
 var neighborhood = {
 	name: "Midtown",
 	center: {
@@ -34,52 +36,49 @@ var locationData = {
 };
 
 var Place = function(data) {
-	for (item in data) {
+	for (var item in data) {
 		if (data.hasOwnProperty(item)){
 			this[item] = data[item];
 		}
 	}
 	this.active = ko.observable(true);
 	this.status = ko.observable('deselected');
-	//TODO marker();
-	//TODO latLong();
+
+	var self = this;
+	geocoder.geocode({'address': this.address}, function(results, status) {
+		if (status == google.maps.GeocoderStatus.OK) {
+			self.latLng = {'lat': results[0].geometry.location.lat(), 'lng': results[0].geometry.location.lng()};
+			self.marker = new google.maps.Marker({
+				position: self.latLng,
+				map: map,
+				title: self.name
+			});
+		}
+	});
 }
 
 var map;
+var geocoder;
 var initMap = function() {
 	map = new google.maps.Map(document.getElementById('map'), {
 		center: neighborhood.center,
 		zoom: 15
 	});
+	geocoder = new google.maps.Geocoder();
 	mapReady();
-};
-
-var marker;
-var addMarker = function(){
-		var marker = new google.maps.Marker({
-			position: map.center,
-			map: map,
-			title: 'Center'
-	});
-	return marker;
-};
-
-var getLatLong = function(address) {
-	google.maps.Geocoder.geocode();
 };
 
 var viewModel = function() {
 	self = this;
 	self.places = [];
 
-	for (i in locationData) {
+	for (var i in locationData) {
 		self.places.push(new Place(locationData[i]));
 	}
 
-
 	self.activePlaces = ko.computed(function() {
 		var workingArray = [];
-		for (i in self.places) {
+		for (var i in self.places) {
 			if (self.places[i].active()) {
 				workingArray.push(self.places[i]);
 			}
@@ -103,7 +102,16 @@ var viewModel = function() {
 	self.searchTerm = ko.observable("");
 	self.searchTerm.extend({ rateLimit: { timeout: 400, method: "notifyWhenChangesStop" } });
 	self.searchPlaces = function() {
-		//TODO Progam function to make only places that contain the search term be set to active
+		var workingPlace = '';
+		var workingSearchTerm = self.searchTerm().toLowerCase();
+		for (var i in self.places) {
+			workingPlace = self.places[i].name.toLowerCase();
+			if (workingPlace.indexOf(workingSearchTerm) > -1) {
+				self.places[i].active(true);
+			} else {
+				self.places[i].active(false);
+			}
+		}
 	}
 	self.searchTerm.subscribe(self.searchPlaces);
 };
