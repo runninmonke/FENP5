@@ -91,10 +91,21 @@ var viewModel = function() {
 	self.changePlace = function(place) {
 		if (typeof self.selectedPlace() == 'object') {
 			self.selectedPlace().status('deselected');
+			if (place === self.selectedPlace()) {
+				self.selectedPlace = ko.observable();
+				return;
+			}
 		}
 		self.selectedPlace(place);
 		self.selectedPlace().status('selected');
 	}
+
+	self.searchTerm = ko.observable("");
+	self.searchTerm.extend({ rateLimit: { timeout: 400, method: "notifyWhenChangesStop" } });
+	self.searchPlaces = function() {
+		//TODO Progam function to make only places that contain the search term be set to active
+	}
+	self.searchTerm.subscribe(self.searchPlaces);
 };
 
 

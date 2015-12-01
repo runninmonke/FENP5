@@ -16,7 +16,7 @@
 			<div id="info" class="hidden"></div>
 			<div class="nav-bar row">
 				<div id="search-bar" class="col-2">
-					<input type="text" name="search" value="" id="search-field">
+					<input type="text" name="search" id="search-field" data-bind="textInput: searchTerm, event: {change: searchPlaces}">
 				</div>
 				<div class="col-10">
 					<ul id="location-list" data-bind="foreach: activePlaces">
