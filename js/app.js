@@ -9,8 +9,8 @@ var neighborhood = {
 	locality: "Omaha, NE"
 };
 var locationData = {
-	home: {
-		name: "Home",
+	rental1: {
+		name: "Rental 1",
 		address: "1316 N 40th St, Omaha, NE 68131"
 	},
 	cathedral: {
@@ -29,8 +29,8 @@ var locationData = {
 		name: "Brother's Lounge",
 		address: "3812 Farnam St, Omaha, NE 68131"
 	},
-	rental: {
-		name: "Rental Property",
+	rental2: {
+		name: "Rental 2",
 		address: "1037 N 33rd St, Omaha, NE 68131"
 	}
 };
@@ -45,9 +45,9 @@ var Place = function(data) {
 	this.status = ko.observable('deselected');
 
 	var self = this;
-	geocoder.geocode({'address': this.address}, function(results, status) {
+	geocoder.geocode({address: this.address}, function(results, status) {
 		if (status == google.maps.GeocoderStatus.OK) {
-			self.latLng = {'lat': results[0].geometry.location.lat(), 'lng': results[0].geometry.location.lng()};
+			self.latLng = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()};
 			self.marker = new google.maps.Marker({
 				position: self.latLng,
 				map: map,
@@ -59,12 +59,14 @@ var Place = function(data) {
 
 var map;
 var geocoder;
+var infoWindow;
 var initMap = function() {
 	map = new google.maps.Map(document.getElementById('map'), {
 		center: neighborhood.center,
-		zoom: 15
+		zoom: 14
 	});
 	geocoder = new google.maps.Geocoder();
+	infoWindow = new google.maps.InfoWindow();
 	mapReady();
 };
 
@@ -90,13 +92,19 @@ var viewModel = function() {
 	self.changePlace = function(place) {
 		if (typeof self.selectedPlace() == 'object') {
 			self.selectedPlace().status('deselected');
+			self.selectedPlace().marker.setAnimation(null);
 			if (place === self.selectedPlace()) {
 				self.selectedPlace = ko.observable();
+				infoWindow.close();
 				return;
 			}
 		}
 		self.selectedPlace(place);
 		self.selectedPlace().status('selected');
+		self.selectedPlace().marker.setAnimation(google.maps.Animation.BOUNCE);
+		infoWindow.setContent(self.selectedPlace().name);
+		infoWindow.open(map, self.selectedPlace().marker)
+
 	}
 
 	self.searchTerm = ko.observable("");
@@ -108,8 +116,10 @@ var viewModel = function() {
 			workingPlace = self.places[i].name.toLowerCase();
 			if (workingPlace.indexOf(workingSearchTerm) > -1) {
 				self.places[i].active(true);
+				self.places[i].marker.setMap(map);
 			} else {
 				self.places[i].active(false);
+				self.places[i].marker.setMap(null);
 			}
 		}
 	}
