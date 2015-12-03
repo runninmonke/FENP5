@@ -44,89 +44,82 @@ var Place = function(data) {
 	this.active = ko.observable(true);
 	this.status = ko.observable('deselected');
 
-	var self = this;
-	geocoder.geocode({address: this.address}, function(results, status) {
+	var selfPlace = this;
+	self.geocoder.geocode({address: this.address}, function(results, status) {
 		if (status == google.maps.GeocoderStatus.OK) {
-			self.latLng = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()};
-			self.marker = new google.maps.Marker({
-				position: self.latLng,
-				map: map,
-				title: self.name
+			selfPlace.latLng = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()};
+			selfPlace.marker = new google.maps.Marker({
+				position: selfPlace.latLng,
+				map: self.map,
+				title: selfPlace.name
 			});
+			selfPlace.marker.addListener('click', function(){self.changePlace(selfPlace)});
 		}
 	});
 }
-
-var map;
-var geocoder;
-var infoWindow;
 var initMap = function() {
-	map = new google.maps.Map(document.getElementById('map'), {
-		center: neighborhood.center,
-		zoom: 14
-	});
-	geocoder = new google.maps.Geocoder();
-	infoWindow = new google.maps.InfoWindow();
-	mapReady();
-};
+	var viewModel = function() {
+		self = this;
+		self.map = new google.maps.Map(document.getElementById('map'), {
+			center: neighborhood.center,
+			zoom: 14
+		});
+		self.geocoder = new google.maps.Geocoder();
+		self.infoWindow = new google.maps.InfoWindow();
 
-var viewModel = function() {
-	self = this;
-	self.places = [];
+		self.places = [];
 
-	for (var i in locationData) {
-		self.places.push(new Place(locationData[i]));
-	}
+		for (var i in locationData) {
+			self.places.push(new Place(locationData[i]));
+		}
 
-	self.activePlaces = ko.computed(function() {
-		var workingArray = [];
-		for (var i in self.places) {
-			if (self.places[i].active()) {
-				workingArray.push(self.places[i]);
+		self.activePlaces = ko.computed(function() {
+			var workingArray = [];
+			for (var i in self.places) {
+				if (self.places[i].active()) {
+					workingArray.push(self.places[i]);
+				}
+			}
+			return workingArray;
+		});
+
+		self.selectedPlace = ko.observable();
+		self.changePlace = function(place) {
+			if (typeof self.selectedPlace() == 'object') {
+				self.selectedPlace().status('deselected');
+				self.selectedPlace().marker.setAnimation(null);
+				if (place === self.selectedPlace()) {
+					self.selectedPlace = ko.observable();
+					self.infoWindow.close();
+					return;
+				}
+			}
+			self.selectedPlace(place);
+			self.selectedPlace().status('selected');
+			self.selectedPlace().marker.setAnimation(google.maps.Animation.BOUNCE);
+			self.infoWindow.setContent(self.selectedPlace().name);
+			self.infoWindow.open(self.map, self.selectedPlace().marker)
+
+		}
+
+		self.searchTerm = ko.observable("");
+		self.searchTerm.extend({ rateLimit: { timeout: 400, method: "notifyWhenChangesStop" } });
+		self.searchPlaces = function() {
+			var workingPlace = '';
+			var workingSearchTerm = self.searchTerm().toLowerCase();
+			for (var i in self.places) {
+				workingPlace = self.places[i].name.toLowerCase();
+				if (workingPlace.indexOf(workingSearchTerm) > -1) {
+					self.places[i].active(true);
+					self.places[i].marker.setMap(self.map);
+				} else {
+					self.places[i].active(false);
+					self.places[i].marker.setMap(null);
+				}
 			}
 		}
-		return workingArray;
-	});
+		self.searchTerm.subscribe(self.searchPlaces);
+	};
 
-	self.selectedPlace = ko.observable();
-	self.changePlace = function(place) {
-		if (typeof self.selectedPlace() == 'object') {
-			self.selectedPlace().status('deselected');
-			self.selectedPlace().marker.setAnimation(null);
-			if (place === self.selectedPlace()) {
-				self.selectedPlace = ko.observable();
-				infoWindow.close();
-				return;
-			}
-		}
-		self.selectedPlace(place);
-		self.selectedPlace().status('selected');
-		self.selectedPlace().marker.setAnimation(google.maps.Animation.BOUNCE);
-		infoWindow.setContent(self.selectedPlace().name);
-		infoWindow.open(map, self.selectedPlace().marker)
-
-	}
-
-	self.searchTerm = ko.observable("");
-	self.searchTerm.extend({ rateLimit: { timeout: 400, method: "notifyWhenChangesStop" } });
-	self.searchPlaces = function() {
-		var workingPlace = '';
-		var workingSearchTerm = self.searchTerm().toLowerCase();
-		for (var i in self.places) {
-			workingPlace = self.places[i].name.toLowerCase();
-			if (workingPlace.indexOf(workingSearchTerm) > -1) {
-				self.places[i].active(true);
-				self.places[i].marker.setMap(map);
-			} else {
-				self.places[i].active(false);
-				self.places[i].marker.setMap(null);
-			}
-		}
-	}
-	self.searchTerm.subscribe(self.searchPlaces);
-};
-
-
-var mapReady = function() {
 	ko.applyBindings(new viewModel());
 };
