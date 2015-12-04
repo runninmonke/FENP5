@@ -14,11 +14,11 @@ var locationData = {
 		address: "1316 N 40th St, Omaha, NE 68131"
 	},
 	cathedral: {
-		name: "St. Cecilia's Catherdral",
+		name: "St. Cecilia Cathedral",
 		address: "701 N 40th St, Omaha, NE 68131"
 	},
 	homeyInn: {
-		name: "The Homey Inn",
+		name: "The Homy Inn",
 		address: "1510 N Saddle Creek Rd, Omaha, NE 68104"
 	},
 	lisas: {
@@ -26,7 +26,7 @@ var locationData = {
 		address: "817 N 40th St, Omaha, NE 68131"
 	},
 	brothers: {
-		name: "Brother's Lounge",
+		name: "Brothers",
 		address: "3812 Farnam St, Omaha, NE 68131"
 	},
 	rental2: {
@@ -45,18 +45,36 @@ var Place = function(data) {
 	this.status = ko.observable('deselected');
 
 	var selfPlace = this;
+	/* Get info from geocoder and populate place properties with results and add a marker*/
 	self.geocoder.geocode({address: this.address}, function(results, status) {
 		if (status == google.maps.GeocoderStatus.OK) {
-			selfPlace.latLng = {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()};
+			selfPlace.latLng = results[0].geometry.location;
+			selfPlace.placeId = results[0].place_id;
 			selfPlace.marker = new google.maps.Marker({
 				position: selfPlace.latLng,
 				map: self.map,
 				title: selfPlace.name
 			});
-			selfPlace.marker.addListener('click', function(){self.changePlace(selfPlace)});
+			selfPlace.marker.addListener('click', function(){self.changePlace(selfPlace);});
+
+	/* Search to see if Google Places has a place with a matching name, temporarily hold
+	** the returned details, then replace with more detailed details from getDetails() */
+			self.detailService.nearbySearch({location: selfPlace.latLng, radius: '100', name: selfPlace.name}, function(results, status){
+				if (status == google.maps.places.PlacesServiceStatus.OK) {
+					selfPlace.details = results[0];
+					selfPlace.placeId = selfPlace.details.place_id;
+					self.detailService.getDetails({placeId: selfPlace.placeId}, function(results, status){
+						if (status == google.maps.places.PlacesServiceStatus.OK) {
+							selfPlace.details = results;
+						}
+					});
+				}
+			});
 		}
+
 	});
 }
+
 var initMap = function() {
 	var viewModel = function() {
 		self = this;
@@ -66,6 +84,7 @@ var initMap = function() {
 		});
 		self.geocoder = new google.maps.Geocoder();
 		self.infoWindow = new google.maps.InfoWindow();
+		self.detailService = new google.maps.places.PlacesService(self.map);
 
 		self.places = [];
 
