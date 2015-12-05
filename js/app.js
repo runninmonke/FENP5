@@ -1,5 +1,10 @@
 'use strict'
 
+var INFO_PHOTO_MAX_DIMENSIONS = {
+	maxWidth: 200,
+	maxHeight: 200
+}
+
 var neighborhood = {
 	name: "Midtown",
 	center: {
@@ -8,6 +13,7 @@ var neighborhood = {
 	},
 	locality: "Omaha, NE"
 };
+
 var locationData = {
 	rental1: {
 		name: "Rental 1",
@@ -35,6 +41,14 @@ var locationData = {
 	}
 };
 
+var contentTemplate = {
+	website: '<span>Website: <a href="%href%">%text%</a>',
+	photo: '<div><img src="%src%" alt="Picture of %alt%"></div>',
+	name: '<h3>%text%</h3>',
+	start: '<div id="infoWindow">',
+	end: '</div>'
+};
+
 var Place = function(data) {
 	for (var item in data) {
 		if (data.hasOwnProperty(item)){
@@ -44,40 +58,69 @@ var Place = function(data) {
 	this.active = ko.observable(true);
 	this.status = ko.observable('deselected');
 
-	var selfPlace = this;
+	var self = this;
 	/* Get info from geocoder and call function to populate properties with results and add a marker*/
-	geocoder.geocode({address: this.address}, function(results, status) {selfPlace.applyGeocode(results, status);});
+	geocoder.geocode({address: this.address}, function(results, status) {self.applyGeocode(results, status);});
 
 }
 
-/* Populate properties with Geocoderesults, add a marker and try to get additional details*/
+/* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of
+*  AJAX requests. The final successful one calls the buildContent method */
 Place.prototype.applyGeocode = function(results, status) {
-	var selfPlace = this;
+	var self = this;
 	if (status == google.maps.GeocoderStatus.OK) {
 		this.latLng = results[0].geometry.location;
-		this.placeId = results[0].place_id;
 		this.marker = new google.maps.Marker({
 			position: this.latLng,
 			map: map,
 			title: this.name
 		});
-	this.marker.addListener('click', function(){vm.changePlace(selfPlace);});
-	detailService.nearbySearch({location: this.latLng, radius: '100', name: this.name}, function(results, status){selfPlace.applyDetails(results, status);});
+	this.marker.addListener('click', function(){vm.changePlace(self);});
+	detailService.nearbySearch({location: this.latLng, radius: '100', name: this.name}, function(results, status){self.applyDetails(results, status);});
+	} else {
+		this.buildContent();
 	}
 }
 
 /* Temporarily assign results from nearbySearch() then assign results from getDetails()*/
 Place.prototype.applyDetails = function(results, status){
-	var selfPlace = this;
+	var self = this;
 	if (status == google.maps.places.PlacesServiceStatus.OK) {
 		this.details = results[0];
-		this.placeId = this.details.place_id;
-		detailService.getDetails({placeId: this.placeId}, function(results, status){
+		detailService.getDetails({placeId: this.details.place_id}, function(results, status){
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
-				selfPlace.details = results;
+				self.details = results;
+				if (results.hasOwnProperty('photos')){
+					self.photoUrl = results.photos[0].getUrl(INFO_PHOTO_MAX_DIMENSIONS);
+				}
+				self.buildContent();
+			} else {
+				self.buildContent();
 			}
 		});
+	} else {
+		self.buildContent();
 	}
+}
+
+/* Builds the content the place displays in the infoWindow when selected */
+Place.prototype.buildContent = function() {
+	this.content = contentTemplate.start;
+	this.content += contentTemplate.name.replace('%text%', this.name);
+
+	if (! this.photoUrl) {
+		this.photoUrl = 'https://maps.googleapis.com/maps/api/streetview?fov=120&key=AIzaSyB7LiznjiujsNwqvwGu7jMg6xVmnVTVSek&size=' +
+			INFO_PHOTO_MAX_DIMENSIONS.maxWidth + 'x' + INFO_PHOTO_MAX_DIMENSIONS.maxHeight +'&location=' + this.latLng.lat() + ', ' + this.latLng.lng();
+	}
+	this.content += contentTemplate.photo.replace('%src%', this.photoUrl).replace('%alt%', 'Photo of ' + this.name);
+
+	if(this.hasOwnProperty('details')) {
+		if (this.details.hasOwnProperty('website')) {
+			this.content += contentTemplate.website.replace('%href%', this.details.website).replace('%text%', this.details.website);
+		}
+	}
+
+	this.content += contentTemplate.end;
 }
 
 var map;
@@ -119,7 +162,7 @@ var viewModel = function() {
 		vm.selectedPlace(place);
 		vm.selectedPlace().status('selected');
 		vm.selectedPlace().marker.setAnimation(google.maps.Animation.BOUNCE);
-		infoWindow.setContent(vm.selectedPlace().name);
+		infoWindow.setContent(vm.selectedPlace().content);
 		infoWindow.open(map, vm.selectedPlace().marker)
 
 	}
@@ -134,6 +177,9 @@ var viewModel = function() {
 			if (workingPlace.indexOf(workingSearchTerm) > -1) {
 				vm.places[i].active(true);
 				vm.places[i].marker.setMap(map);
+				if (vm.places[i] === vm.selectedPlace()) {
+					vm.places[i].marker.setAnimation(google.maps.Animation.BOUNCE);
+				}
 			} else {
 				vm.places[i].active(false);
 				vm.places[i].marker.setMap(null);
