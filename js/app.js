@@ -11,7 +11,8 @@ var neighborhood = {
 		lat: 41.263218,
 		lng: -95.987867
 	},
-	locality: "Omaha, NE"
+	locality: "Omaha, NE",
+	weather: {}
 };
 
 var locationData = {
@@ -42,7 +43,7 @@ var locationData = {
 };
 
 var contentTemplate = {
-	website: '<span>Website: <a href="%href%">%text%</a>',
+	website: '<a href="%href%">Website</a>',
 	photo: '<div><img src="%src%" alt="Picture of %alt%"></div>',
 	name: '<h3>%text%</h3>',
 	start: '<div id="infoWindow">',
@@ -77,6 +78,8 @@ Place.prototype.applyGeocode = function(results, status) {
 		});
 	this.marker.addListener('click', function(){vm.changePlace(self);});
 	detailService.nearbySearch({location: this.latLng, radius: '100', name: this.name}, function(results, status){self.applyDetails(results, status);});
+	var requestStr = 'http://api.sunrise-sunset.org/json?lat=' + this.latLng.lat() + '&lng=' + this.latLng.lng();
+	$.getJSON(requestStr, function(data){self.applySunTimes(data)});
 	} else {
 		this.buildContent();
 	}
@@ -103,6 +106,16 @@ Place.prototype.applyDetails = function(results, status){
 	}
 }
 
+Place.prototype.applySunTimes = function(data) {
+	if (data.status == 'OK') {
+		this.sun = {
+			rise: data.results.sunrise,
+			set: data.results.sunset,
+			noon: data.results.solar_noon
+		}
+	}
+}
+
 /* Builds the content the place displays in the infoWindow when selected */
 Place.prototype.buildContent = function() {
 	this.content = contentTemplate.start;
@@ -110,13 +123,13 @@ Place.prototype.buildContent = function() {
 
 	if (! this.photoUrl) {
 		this.photoUrl = 'https://maps.googleapis.com/maps/api/streetview?fov=120&key=AIzaSyB7LiznjiujsNwqvwGu7jMg6xVmnVTVSek&size=' +
-			INFO_PHOTO_MAX_DIMENSIONS.maxWidth + 'x' + INFO_PHOTO_MAX_DIMENSIONS.maxHeight +'&location=' + this.latLng.lat() + ', ' + this.latLng.lng();
+			INFO_PHOTO_MAX_DIMENSIONS.maxWidth + 'x' + INFO_PHOTO_MAX_DIMENSIONS.maxHeight +'&location=' + this.address;
 	}
 	this.content += contentTemplate.photo.replace('%src%', this.photoUrl).replace('%alt%', 'Photo of ' + this.name);
 
 	if(this.hasOwnProperty('details')) {
 		if (this.details.hasOwnProperty('website')) {
-			this.content += contentTemplate.website.replace('%href%', this.details.website).replace('%text%', this.details.website);
+			this.content += contentTemplate.website.replace('%href%', this.details.website);
 		}
 	}
 
@@ -129,7 +142,7 @@ var infoWindow;
 var detailService;
 var vm;
 
-//https://api.apixu.com/v1/current.json?key=f7fc2a0c018f47c688b200705150412&q=Paris
+
 var viewModel = function() {
 	vm = this;
 
@@ -178,7 +191,7 @@ var viewModel = function() {
 				vm.places[i].active(true);
 				vm.places[i].marker.setMap(map);
 				if (vm.places[i] === vm.selectedPlace()) {
-					vm.places[i].marker.setAnimation(google.maps.Animation.BOUNCE);
+					vm.places[i].xmarker.setAnimation(google.maps.Animation.BOUNCE);
 				}
 			} else {
 				vm.places[i].active(false);
@@ -198,5 +211,26 @@ var initMap = function() {
 	infoWindow = new google.maps.InfoWindow();
 	detailService = new google.maps.places.PlacesService(map);
 
+	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
+		getWeather(results);
+	});
 	ko.applyBindings(new viewModel());
 };
+
+var getWeather = function(results){
+		var utcHour = new Date().getUTCHours();
+		var utcDay = new Date().getUTCDate();
+
+		neighborhood.weather = results;
+
+		/* Parse results into local time and date */
+		var localHour = neighborhood.weather.location.localtime.split(':')[0];
+		var localDay = localHour.split('-')[2].split(' ')[0];
+		localHour = Number(localHour.split(' ')[1]);
+		/* Factor any date difference into the hours */
+		utcHour += utcDay * 24;
+		localHour += localDay * 24;
+
+		/* Deterimine current neighborhood UTC offset */
+		neighborhood.weather.utcOffset = (localHour - utcHour);
+	};
