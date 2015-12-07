@@ -191,7 +191,7 @@ var viewModel = function() {
 				vm.places[i].active(true);
 				vm.places[i].marker.setMap(map);
 				if (vm.places[i] === vm.selectedPlace()) {
-					vm.places[i].xmarker.setAnimation(google.maps.Animation.BOUNCE);
+					vm.places[i].marker.setAnimation(google.maps.Animation.BOUNCE);
 				}
 			} else {
 				vm.places[i].active(false);
