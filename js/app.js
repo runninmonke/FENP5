@@ -212,25 +212,34 @@ var initMap = function() {
 	detailService = new google.maps.places.PlacesService(map);
 
 	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
-		getWeather(results);
+		neighborhood.weather = results;
+		neighborhood.calcTimeOffset();
 	});
+
 	ko.applyBindings(new viewModel());
 };
 
-var getWeather = function(results){
+neighborhood.calcTimeOffset = function(){
 		var utcHour = new Date().getUTCHours();
 		var utcDay = new Date().getUTCDate();
 
-		neighborhood.weather = results;
-
 		/* Parse results into local time and date */
-		var localHour = neighborhood.weather.location.localtime.split(':')[0];
+		var localHour = this.weather.location.localtime.split(':')[0];
 		var localDay = localHour.split('-')[2].split(' ')[0];
 		localHour = Number(localHour.split(' ')[1]);
-		/* Factor any date difference into the hours */
-		utcHour += utcDay * 24;
-		localHour += localDay * 24;
 
-		/* Deterimine current neighborhood UTC offset */
-		neighborhood.weather.utcOffset = (localHour - utcHour);
+		/* Factor any date difference into the hours */
+		var dateDifference = localDay - utcDay;
+		if (dateDifference == 1) {
+			localHour += 24;
+		} else if (dateDifference == -1) {
+			utcHour += 24;
+		} else if (dateDifference > 1) {
+			utcHour += 24;
+		} else if (dateDifference < -1) {
+			localHour += 24;
+		}
+
+		/* Deterimine current neighborhood time offset */
+		this.weather.utcOffset = (localHour - utcHour);
 	};
