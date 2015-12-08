@@ -1,6 +1,6 @@
 'use strict'
 
-var INFO_PHOTO_MAX_DIMENSIONS = {
+var INFO_PHOTO = {
 	maxWidth: 200,
 	maxHeight: 200
 }
@@ -43,10 +43,11 @@ var locationData = {
 };
 
 var contentTemplate = {
+	sun: '<p>Sunrise: %sunrise%<br>Solar noon: %noon%<br>Sunset: %sunset%</p>',
 	website: '<a href="%href%">Website</a>',
 	photo: '<div><img src="%src%" alt="Picture of %alt%"></div>',
 	name: '<h3>%text%</h3>',
-	start: '<div id="infoWindow">',
+	start: '<div id="info-window">',
 	end: '</div>'
 };
 
@@ -94,7 +95,7 @@ Place.prototype.applyDetails = function(results, status){
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
 				self.details = results;
 				if (results.hasOwnProperty('photos')){
-					self.photoUrl = results.photos[0].getUrl(INFO_PHOTO_MAX_DIMENSIONS);
+					self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
 				}
 				self.buildContent();
 			} else {
@@ -107,13 +108,44 @@ Place.prototype.applyDetails = function(results, status){
 }
 
 Place.prototype.applySunTimes = function(data) {
-	if (data.status == 'OK') {
-		this.sun = {
-			rise: data.results.sunrise,
-			set: data.results.sunset,
-			noon: data.results.solar_noon
-		}
+	if (data.status != 'OK') {
+		return;
 	}
+
+	this.sun = {
+		rise: data.results.sunrise,
+		set: data.results.sunset,
+		noon: data.results.solar_noon
+	}
+
+	/* Adjust times for timezone offset
+	*  TODO: refactor into a seperate place method and utilize $(document).ajaxStop()*/
+	for (var i in this.sun) {
+		var origAMorPM = this.sun[i].split(' ')[1];
+		var newAMorPM = origAMorPM;
+		var origHour = Number(this.sun[i].split(':')[0]);
+		var newHour = origHour + neighborhood.weather.utcOffset;
+		if (origAMorPM == 'PM') {
+			newHour += 12;
+		}
+		if (newHour < 1) {
+			newHour += 12;
+		}
+		if (newHour < 12){
+			newAMorPM = 'AM';
+			if (newHour == 0) {
+				newHour = 12;
+			}
+		} else {
+			newAMorPM = 'PM';
+		}
+		if (newHour > 12) {
+			newHour = newHour - 12;
+		}
+		this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
+	}
+
+	this.buildContent();
 }
 
 /* Builds the content the place displays in the infoWindow when selected */
@@ -123,14 +155,17 @@ Place.prototype.buildContent = function() {
 
 	if (! this.photoUrl) {
 		this.photoUrl = 'https://maps.googleapis.com/maps/api/streetview?fov=120&key=AIzaSyB7LiznjiujsNwqvwGu7jMg6xVmnVTVSek&size=' +
-			INFO_PHOTO_MAX_DIMENSIONS.maxWidth + 'x' + INFO_PHOTO_MAX_DIMENSIONS.maxHeight +'&location=' + this.address;
+			INFO_PHOTO.maxWidth + 'x' + INFO_PHOTO.maxHeight +'&location=' + this.address;
 	}
 	this.content += contentTemplate.photo.replace('%src%', this.photoUrl).replace('%alt%', 'Photo of ' + this.name);
 
-	if(this.hasOwnProperty('details')) {
+	if (this.hasOwnProperty('details')) {
 		if (this.details.hasOwnProperty('website')) {
 			this.content += contentTemplate.website.replace('%href%', this.details.website);
 		}
+	}
+	if (this.hasOwnProperty('sun')) {
+		this.content += contentTemplate.sun.replace('%sunrise%', this.sun.rise).replace('%noon%', this.sun.noon).replace('%sunset%', this.sun.set);
 	}
 
 	this.content += contentTemplate.end;
@@ -220,26 +255,26 @@ var initMap = function() {
 };
 
 neighborhood.calcTimeOffset = function(){
-		var utcHour = new Date().getUTCHours();
-		var utcDay = new Date().getUTCDate();
+	var utcHour = new Date().getUTCHours();
+	var utcDay = new Date().getUTCDate();
 
-		/* Parse results into local time and date */
-		var localHour = this.weather.location.localtime.split(':')[0];
-		var localDay = localHour.split('-')[2].split(' ')[0];
-		localHour = Number(localHour.split(' ')[1]);
+	/* Parse results into local time and date */
+	var localHour = this.weather.location.localtime.split(':')[0];
+	var localDay = localHour.split('-')[2].split(' ')[0];
+	localHour = Number(localHour.split(' ')[1]);
 
-		/* Factor any date difference into the hours */
-		var dateDifference = localDay - utcDay;
-		if (dateDifference == 1) {
-			localHour += 24;
-		} else if (dateDifference == -1) {
-			utcHour += 24;
-		} else if (dateDifference > 1) {
-			utcHour += 24;
-		} else if (dateDifference < -1) {
-			localHour += 24;
-		}
+	/* Factor any date difference into the hours */
+	var dateDifference = localDay - utcDay;
+	if (dateDifference == 1) {
+		localHour += 24;
+	} else if (dateDifference == -1) {
+		utcHour += 24;
+	} else if (dateDifference > 1) {
+		utcHour += 24;
+	} else if (dateDifference < -1) {
+		localHour += 24;
+	}
 
-		/* Deterimine current neighborhood time offset */
-		this.weather.utcOffset = (localHour - utcHour);
-	};
+	/* Deterimine current neighborhood time offset */
+	this.weather.utcOffset = (localHour - utcHour);
+};
