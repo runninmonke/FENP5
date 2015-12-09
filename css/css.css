@@ -87,12 +87,6 @@ html, body {
 	padding: 5px;
 }
 
-#info-window {
-	position: relative;
-	float: right;
-	height: 100%;
-}
-
 #map {
 	height: 90vh;
   width: 100vw;
@@ -137,3 +131,6 @@ html, body {
   text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
 }
 
+#info-window {
+  margin: -15px 0 -5px 0;
+}
