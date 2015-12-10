@@ -67,63 +67,51 @@ html, body {
 	padding: 0px;
 }
 
-#landmark-menu{
-	height: 10%;
-}
-
-.landmarks {
-	position: relative;
-}
-
-.landmarks ul {
-	list-style-type: none;
-	list-style-image: none;
-}
-
-.landmarks li {
-	display: inline;
-	background-color: #FFFFFF;
-	margin: 5px;
-	padding: 5px;
+.containter {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 #map {
-	height: 90vh;
-  width: 100vw;
-}
-
-#gui {
+  display: inline-block;
+  float: right;
+	height: 100vh;
+  width: calc(100% - 300px);
 }
 
 .hidden {
   display: none;
 }
 .nav-bar {
-  position: relative;
-  height: 10vh;
-  width: 100vw;
+  display: inline-block;
+  float: left;
+  height: 100vh;
+  width: 300px;
   z-index: 1;
 }
 
 #search-bar {
-  background-color: grey;
+  background-color: #b8b8b8;
+  height: 50px;
 }
 
 #search-field {
-  display: block;
+  width: 296px;
+  height: 48px;
   margin: 0 auto;
+  font-size: 3em;
 }
 
 #location-list {
   list-style-type: none;
   color: black;
-  font: arial 1.25em;
+  font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
   text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
 }
 
 #location-list li{
-  display: inline;
-  padding: 1em;
+  padding: 10px;
 }
 
 .selected {
