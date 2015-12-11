@@ -196,6 +196,16 @@ var viewModel = function() {
 		return workingArray;
 	});
 
+	vm.menuStatus = ko.observable('closed');
+
+	vm.openMenu = function() {
+		if (vm.menuStatus() == 'closed'){
+			vm.menuStatus('open');
+		} else {
+			vm.menuStatus('closed');
+		}
+	};
+
 	vm.selectedPlace = ko.observable();
 	vm.changePlace = function(place) {
 		if (typeof vm.selectedPlace() == 'object') {
@@ -245,6 +255,10 @@ var initMap = function() {
 	geocoder = new google.maps.Geocoder();
 	infoWindow = new google.maps.InfoWindow();
 	detailService = new google.maps.places.PlacesService(map);
+
+	google.maps.event.addListenerOnce(map, 'idle', function(){
+    	$(".gmnoprint:nth-last-child(2)").attr('style', 'margin: 10px; z-index: 0; position: relative; float:right; cursor: pointer; left: 0px; top: 0px;');
+	});
 
 	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
 		neighborhood.weather = results;

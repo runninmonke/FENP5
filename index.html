@@ -12,17 +12,14 @@
 	</head>
 
 	<body>
-		<div class="container">
-			<div class="nav-bar">
-				<div id="search-bar">
-					<input type="text" name="search" id="search-field" data-bind="textInput: searchTerm">
-				</div>
-				<ul id="location-list" data-bind="foreach: activePlaces">
-					<li data-bind="text: name, click: $parent.changePlace, attr: {class: status}"></li>
-				</ul>
-			</div>
-			<div id="map" data-bind="markerClicks: places"></div>
+		<div id="nav-bar" data-bind="attr: {class: menuStatus}">
+			<input type="text" name="search" id="search-field" data-bind="textInput: searchTerm">
+			<ul id="location-list" data-bind="foreach: activePlaces">
+				<li data-bind="text: name, click: $parent.changePlace, attr: {class: status}"></li>
+			</ul>
 		</div>
+		<div id="hamburger" data-bind="attr: {class: menuStatus}, click: openMenu"><div id="icon">&#8801</div></div>
+		<div id="map" data-bind="markerClicks: places"></div>
 		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
 		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 		<script type="text/javascript" src="js/app.js"></script>

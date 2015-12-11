@@ -74,49 +74,95 @@ html, body {
 }
 
 #map {
-  display: inline-block;
-  float: right;
-	height: 100vh;
-  width: calc(100% - 300px);
+  position: absolute;
+  height: 100vh;
+  width: 100vw;
+  z-index: 0;
 }
 
 .hidden {
   display: none;
 }
-.nav-bar {
-  display: inline-block;
-  float: left;
+
+#nav-bar {
+  background: rgba(128, 128, 128, .2);
+  position: absolute;
+  width: 245px;
   height: 100vh;
-  width: 300px;
   z-index: 1;
+  pointer-events: none;
+  margin-left: -235px;
 }
 
-#search-bar {
-  background-color: #b8b8b8;
-  height: 50px;
+#nav-bar.open {
+  margin-left: 0;
+}
+
+#nav-bar.closed {
+  margin-left: -235px;
+}
+
+#hamburger {
+  position: absolute;
+  z-index: 1;
+  margin: 3px 0 0 10px;
+  width: 50px;
+  height: 57px;
+  background:rgba(128, 128, 128, .2);
+  border-radius: 0 2px 2px 0;
+}
+
+#hamburger.open {
+  margin: 3px 0 0 245px;
+}
+
+#hamburger.closed {
+  margin: 3px 0 0 10px;
+}
+
+#icon {
+  font-size: 75px;
+  font-weight: bold;
+  margin: -15px 0 0 0;
+  color: rgba(128, 128, 128, 0.8);
 }
 
 #search-field {
-  width: 296px;
-  height: 48px;
+  pointer-events: all;
+  width: 225px;
+  height: 43px;
   margin: 0 auto;
-  font-size: 3em;
-}
-
-#location-list {
-  list-style-type: none;
-  color: black;
-  font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
-  text-shadow: -1px 0 white, 0 1px white, 1px 0 white, 0 -1px white;
+  font-size: 1.4em;
+  margin: 7px;
+  border: none;
+  border-radius: 2px;
 }
 
 #location-list li{
-  padding: 10px;
+  padding: 7px;
+}
+
+#location-list {
+  pointer-events: visiblePainted;
+  list-style-type: none;
+  color: black;
+  font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  margin-left: -25px;
+  font-size: 1.1em;
+  text-shadow: -2px 0 2px white, 0 2px 2px white, 2px 0 2px white, 0 -2px 2px white, -2px -2px 2px white, -2px 2px 2px white, 2px -2px 2px white, 2px 2px 2px white, -2px 0 2px white,
+                0 2px 2px white, 2px 0 2px white, 0 -2px 2px white, -2px -2px 2px white, -2px 2px 2px white, 2px -2px 2px white, 2px 2px 2px white, -2px 0 2px white, 0 2px 2px white,
+                2px 0 2px white, 0 -2px 2px white, -2px -2px 2px white, -2px 2px 2px white, 2px -2px 2px white, 2px 2px 2px white, -2px 0 2px white, 0 2px 2px white, 2px 0 2px white,
+                0 -2px 2px white, -2px -2px 2px white, -2px 2px 2px white, 2px -2px 2px white, 2px 2px 2px white, -2px 0 2px white, 0 2px 2px white, 2px 0 2px white, 0 -2px 2px white,
+                -2px -2px 2px white, -2px 2px 2px white, 2px -2px 2px white, 2px 2px 2px white;
 }
 
 .selected {
   color: #FFE168;
-  text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+    text-shadow: -2px 0 2px #444, 0 2px 2px #444, 2px 0 2px #444, 0 -2px 2px #444, -2px -2px 2px #444, -2px 2px 2px #444, 2px -2px 2px #444, 2px 2px 2px #444, -2px 0 2px #444,
+                0 2px 2px #444, 2px 0 2px #444, 0 -2px 2px #444, -2px -2px 2px #444, -2px 2px 2px #444, 2px -2px 2px #444, 2px 2px 2px #444, -2px 0 2px #444, 0 2px 2px #444,
+                2px 0 2px #444, 0 -2px 2px #444, -2px -2px 2px #444, -2px 2px 2px #444, 2px -2px 2px #444, 2px 2px 2px #444, -2px 0 2px #444, 0 2px 2px #444, 2px 0 2px #444,
+                0 -2px 2px #444, -2px -2px 2px #444, -2px 2px 2px #444, 2px -2px 2px #444, 2px 2px 2px #444, -2px 0 2px #444, 0 2px 2px #444, 2px 0 2px #444, 0 -2px 2px #444,
+                -2px -2px 2px #444, -2px 2px 2px #444, 2px -2px 2px #444, 2px 2px 2px #444;
 }
 
 #info-window {
