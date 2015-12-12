@@ -147,6 +147,7 @@ Place.prototype.buildContent = function() {
 			this.content += contentTemplate.website.replace('%href%', this.details.website);
 		}
 	}
+
 	if (this.hasOwnProperty('sun')) {
 		/* Adjust times for timezone offset */
 		for (var i in this.sun) {
@@ -173,6 +174,7 @@ Place.prototype.buildContent = function() {
 			}
 			this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
 		}
+
 		this.content += contentTemplate.sun.replace('%sunrise%', this.sun.rise).replace('%noon%', this.sun.noon).replace('%sunset%', this.sun.set);
 	}
 
@@ -195,18 +197,9 @@ var viewModel = function() {
 		vm.places.push(new Place(locationData[i]));
 	}
 
-	vm.activePlaces = ko.computed(function() {
-		var workingArray = [];
-		for (var i in vm.places) {
-			if (vm.places[i].active()) {
-				workingArray.push(vm.places[i]);
-			}
-		}
-		return workingArray;
-	});
+	vm.activePlaces = ko.observableArray(vm.places);
 
 	vm.menuStatus = ko.observable('closed');
-
 	vm.openMenu = function() {
 		if (vm.menuStatus() == 'closed'){
 			vm.menuStatus('open');
@@ -216,6 +209,7 @@ var viewModel = function() {
 	};
 
 	vm.selectedPlace = ko.observable();
+
 	vm.changePlace = function(place) {
 		if (typeof vm.selectedPlace() == 'object') {
 			vm.selectedPlace().status('deselected');
@@ -235,14 +229,18 @@ var viewModel = function() {
 	}
 
 	vm.searchTerm = ko.observable("");
-	vm.searchTerm.extend({ rateLimit: { timeout: 400, method: "notifyWhenChangesStop" } });
+	/* Search is dynamic, so this limits the rate of updates */
+	vm.searchTerm.extend({ rateLimit: {timeout: 400, method: "notifyWhenChangesStop"}});
+
 	vm.searchPlaces = function() {
+		vm.activePlaces([]);
 		var workingPlace = '';
 		var workingSearchTerm = vm.searchTerm().toLowerCase();
 		for (var i in vm.places) {
 			workingPlace = vm.places[i].name.toLowerCase();
 			if (workingPlace.indexOf(workingSearchTerm) > -1) {
 				vm.places[i].active(true);
+				vm.activePlaces.push(vm.places[i]);
 				vm.places[i].marker.setMap(map);
 				if (vm.places[i] === vm.selectedPlace()) {
 					vm.places[i].marker.setAnimation(google.maps.Animation.BOUNCE);
