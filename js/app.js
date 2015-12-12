@@ -71,14 +71,17 @@ var Place = function(data) {
 	this.active = ko.observable(true);
 	this.status = ko.observable('deselected');
 
+	/* Set self = this as a way to make the object's methods available to the callback function.
+	*  Same strategy is utilized in some of the object methods. */
 	var self = this;
 	/* Get info from geocoder and call function to populate properties with results and add a marker*/
-	geocoder.geocode({address: this.address}, function(results, status) {self.applyGeocode(results, status);});
-
+	geocoder.geocode({address: this.address}, function(results, status) {
+		self.applyGeocode(results, status);
+	});
+	$(document).ajaxStop(function(){self.buildContent();});
 };
 
-/* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of
-*  AJAX requests. The final successful one calls the buildContent method */
+/* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of AJAX requests. */
 Place.prototype.applyGeocode = function(results, status) {
 	var self = this;
 	if (status == google.maps.GeocoderStatus.OK) {
@@ -88,12 +91,15 @@ Place.prototype.applyGeocode = function(results, status) {
 			map: map,
 			title: this.name
 		});
-	this.marker.addListener('click', function(){vm.changePlace(self);});
-	detailService.nearbySearch({location: this.latLng, radius: '100', name: this.name}, function(results, status){self.applyDetails(results, status);});
-	var requestStr = 'http://api.sunrise-sunset.org/json?lat=' + this.latLng.lat() + '&lng=' + this.latLng.lng();
-	$.getJSON(requestStr, function(data){self.applySunTimes(data)});
-	} else {
-		this.buildContent();
+
+		this.marker.addListener('click', function(){vm.changePlace(self);});
+
+		detailService.nearbySearch({location: this.latLng, radius: '100', name: this.name}, function(results, status){
+			self.applyDetails(results, status);
+		});
+
+		var APIrequestStr = 'http://api.sunrise-sunset.org/json?lat=' + this.latLng.lat() + '&lng=' + this.latLng.lng();
+		$.getJSON(APIrequestStr, function(data){self.applySunTimes(data)});
 	}
 };
 
@@ -108,13 +114,8 @@ Place.prototype.applyDetails = function(results, status){
 				if (results.hasOwnProperty('photos')){
 					self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
 				}
-				self.buildContent();
-			} else {
-				self.buildContent();
 			}
 		});
-	} else {
-		self.buildContent();
 	}
 };
 
@@ -128,38 +129,9 @@ Place.prototype.applySunTimes = function(data) {
 		set: data.results.sunset,
 		noon: data.results.solar_noon
 	};
-
-	/* Adjust times for timezone offset
-	*  TODO: refactor into a seperate place method and utilize $(document).ajaxStop()*/
-	for (var i in this.sun) {
-		var origAMorPM = this.sun[i].split(' ')[1];
-		var newAMorPM = origAMorPM;
-		var origHour = Number(this.sun[i].split(':')[0]);
-		var newHour = origHour + neighborhood.weather.utcOffset;
-		if (origAMorPM == 'PM') {
-			newHour += 12;
-		}
-		if (newHour < 1) {
-			newHour += 12;
-		}
-		if (newHour < 12){
-			newAMorPM = 'AM';
-			if (newHour === 0) {
-				newHour = 12;
-			}
-		} else {
-			newAMorPM = 'PM';
-		}
-		if (newHour > 12) {
-			newHour = newHour - 12;
-		}
-		this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
-	}
-
-	this.buildContent();
 };
 
-/* Builds the content the place displays in the infoWindow when selected */
+/* Builds the content the place displays in the infoWindow*/
 Place.prototype.buildContent = function() {
 	this.content = contentTemplate.start;
 	this.content += contentTemplate.name.replace('%text%', this.name);
@@ -176,6 +148,31 @@ Place.prototype.buildContent = function() {
 		}
 	}
 	if (this.hasOwnProperty('sun')) {
+		/* Adjust times for timezone offset */
+		for (var i in this.sun) {
+			var origAMorPM = this.sun[i].split(' ')[1];
+			var newAMorPM = origAMorPM;
+			var origHour = Number(this.sun[i].split(':')[0]);
+			var newHour = origHour + neighborhood.weather.utcOffset;
+			if (origAMorPM == 'PM') {
+				newHour += 12;
+			}
+			if (newHour < 1) {
+				newHour += 12;
+			}
+			if (newHour < 12){
+				newAMorPM = 'AM';
+				if (newHour === 0) {
+					newHour = 12;
+				}
+			} else {
+				newAMorPM = 'PM';
+			}
+			if (newHour > 12) {
+				newHour = newHour - 12;
+			}
+			this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
+		}
 		this.content += contentTemplate.sun.replace('%sunrise%', this.sun.rise).replace('%noon%', this.sun.noon).replace('%sunset%', this.sun.set);
 	}
 
