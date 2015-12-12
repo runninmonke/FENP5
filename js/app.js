@@ -1,9 +1,20 @@
-'use strict'
+// Hello.
+//
+// This is JSHint, a tool that helps to detect errors and potential
+// problems in your JavaScript code.
+//
+// To start, simply enter some JavaScript anywhere on this page. Your
+// report will appear on the right side.
+//
+// Additionally, you can toggle specific options in the Configure
+// menu.
+
+'use strict';
 
 var INFO_PHOTO = {
 	maxWidth: 200,
 	maxHeight: 200
-}
+};
 
 var neighborhood = {
 	name: "Midtown",
@@ -64,7 +75,7 @@ var Place = function(data) {
 	/* Get info from geocoder and call function to populate properties with results and add a marker*/
 	geocoder.geocode({address: this.address}, function(results, status) {self.applyGeocode(results, status);});
 
-}
+};
 
 /* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of
 *  AJAX requests. The final successful one calls the buildContent method */
@@ -84,7 +95,7 @@ Place.prototype.applyGeocode = function(results, status) {
 	} else {
 		this.buildContent();
 	}
-}
+};
 
 /* Temporarily assign results from nearbySearch() then assign results from getDetails()*/
 Place.prototype.applyDetails = function(results, status){
@@ -105,7 +116,7 @@ Place.prototype.applyDetails = function(results, status){
 	} else {
 		self.buildContent();
 	}
-}
+};
 
 Place.prototype.applySunTimes = function(data) {
 	if (data.status != 'OK') {
@@ -116,7 +127,7 @@ Place.prototype.applySunTimes = function(data) {
 		rise: data.results.sunrise,
 		set: data.results.sunset,
 		noon: data.results.solar_noon
-	}
+	};
 
 	/* Adjust times for timezone offset
 	*  TODO: refactor into a seperate place method and utilize $(document).ajaxStop()*/
@@ -133,7 +144,7 @@ Place.prototype.applySunTimes = function(data) {
 		}
 		if (newHour < 12){
 			newAMorPM = 'AM';
-			if (newHour == 0) {
+			if (newHour === 0) {
 				newHour = 12;
 			}
 		} else {
@@ -146,7 +157,7 @@ Place.prototype.applySunTimes = function(data) {
 	}
 
 	this.buildContent();
-}
+};
 
 /* Builds the content the place displays in the infoWindow when selected */
 Place.prototype.buildContent = function() {
@@ -169,12 +180,13 @@ Place.prototype.buildContent = function() {
 	}
 
 	this.content += contentTemplate.end;
-}
+};
 
 var map;
 var geocoder;
 var infoWindow;
 var detailService;
+var panorama;
 var vm;
 
 
@@ -221,7 +233,7 @@ var viewModel = function() {
 		vm.selectedPlace().status('selected');
 		vm.selectedPlace().marker.setAnimation(google.maps.Animation.BOUNCE);
 		infoWindow.setContent(vm.selectedPlace().content);
-		infoWindow.open(map, vm.selectedPlace().marker)
+		infoWindow.open(map, vm.selectedPlace().marker);
 
 	}
 
@@ -243,22 +255,31 @@ var viewModel = function() {
 				vm.places[i].marker.setMap(null);
 			}
 		}
-	}
+	};
 	vm.searchTerm.subscribe(vm.searchPlaces);
 };
 
 var initMap = function() {
 	map = new google.maps.Map(document.getElementById('map'), {
 		center: neighborhood.center,
-		zoom: 14
+		zoom: 14,
+		mapTypeControlOptions: {
+			position: google.maps.ControlPosition.TOP_RIGHT
+	    }
 	});
+
+	panorama = map.getStreetView();
+    panorama.setOptions({
+		options: {
+			addressControlOptions: {
+				position: google.maps.ControlPosition.BOTTOM_CENTER
+			}
+		}
+	});
+
 	geocoder = new google.maps.Geocoder();
 	infoWindow = new google.maps.InfoWindow();
 	detailService = new google.maps.places.PlacesService(map);
-
-	google.maps.event.addListenerOnce(map, 'idle', function(){
-    	$(".gmnoprint:nth-last-child(2)").attr('style', 'margin: 10px; z-index: 0; position: relative; float:right; cursor: pointer; left: 0px; top: 0px;');
-	});
 
 	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
 		neighborhood.weather = results;
