@@ -63,60 +63,80 @@ var contentTemplate = {
 };
 
 var Place = function(data) {
+	var self = this;
 	for (var item in data) {
 		if (data.hasOwnProperty(item)){
-			this[item] = data[item];
+			self[item] = data[item];
 		}
 	}
-	this.active = ko.observable(true);
-	this.status = ko.observable('deselected');
+	self.active = ko.observable(true);
+	self.status = ko.observable('deselected');
 
-	/* Set self = this as a way to make the object's methods available to the callback function.
-	*  Same strategy is utilized in some of the object methods. */
-	var self = this;
-	/* Get info from geocoder and call function to populate properties with results and add a marker*/
-	geocoder.geocode({address: this.address}, function(results, status) {
-		self.applyGeocode(results, status);
+	if (self.hasOwnProperty('latLng')) {
+		self.createDetails();
+	} else {
+		self.getLatLng();
+	}
+
+	$(document).ajaxStop(function(){
+		self.buildContent();
 	});
-	$(document).ajaxStop(function(){self.buildContent();});
 };
 
 /* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of AJAX requests. */
-Place.prototype.applyGeocode = function(results, status) {
+Place.prototype.getLatLng = function() {
+	/* Set self = this as a way to make the object's methods available to the callback function. */
 	var self = this;
-	if (status == google.maps.GeocoderStatus.OK) {
-		this.latLng = results[0].geometry.location;
-		this.marker = new google.maps.Marker({
-			position: this.latLng,
-			map: map,
-			title: this.name
+	geocoder.geocode({address: self.address}, function(results, status) {
+		if (status == google.maps.GeocoderStatus.OK) {
+			self.latLng = results[0].geometry.location;
+			self.createDetails();
+		}
+	});
+};
+
+Place.prototype.createDetails = function(){
+	var self = this;
+	self.marker = new google.maps.Marker({
+		position: self.latLng,
+		map: map,
+		title: self.name
+	});
+
+	self.marker.addListener('click', function(){
+		vm.changePlace(self);
+	});
+
+	/* AJAX request for sunrise/set etc */
+	var AJAXrequestStr = 'http://api.sunrise-sunset.org/json?lat=' + self.latLng.lat() + '&lng=' + self.latLng.lng();
+	$.getJSON(AJAXrequestStr, function(data){
+		self.applySunTimes(data);
+	});
+
+	//TODO: see if this actually works.
+	if (self.hasOwnProperty('details.place_id')) {
+		self.getMoreDetails();
+	} else {
+		detailService.nearbySearch({location: self.latLng, radius: '100', name: self.name}, function(results, status){
+			if (status == google.maps.places.PlacesServiceStatus.OK) {
+				self.details = results[0];
+				self.getMoreDetails();
+			}
 		});
-
-		this.marker.addListener('click', function(){vm.changePlace(self);});
-
-		detailService.nearbySearch({location: this.latLng, radius: '100', name: this.name}, function(results, status){
-			self.applyDetails(results, status);
-		});
-
-		var APIrequestStr = 'http://api.sunrise-sunset.org/json?lat=' + this.latLng.lat() + '&lng=' + this.latLng.lng();
-		$.getJSON(APIrequestStr, function(data){self.applySunTimes(data)});
 	}
 };
 
 /* Temporarily assign results from nearbySearch() then assign results from getDetails()*/
-Place.prototype.applyDetails = function(results, status){
+Place.prototype.getMoreDetails = function() {
 	var self = this;
-	if (status == google.maps.places.PlacesServiceStatus.OK) {
-		this.details = results[0];
-		detailService.getDetails({placeId: this.details.place_id}, function(results, status){
-			if (status == google.maps.places.PlacesServiceStatus.OK) {
-				self.details = results;
-				if (results.hasOwnProperty('photos')){
-					self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
-				}
+	detailService.getDetails({placeId: self.details.place_id}, function(results, status){
+		if (status == google.maps.places.PlacesServiceStatus.OK) {
+			self.details = results;
+			if (results.hasOwnProperty('photos')){
+				self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
 			}
-		});
-	}
+		}
+	});
 };
 
 Place.prototype.applySunTimes = function(data) {
