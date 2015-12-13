@@ -167,6 +167,7 @@ Place.prototype.buildContent = function() {
 			this.content += contentTemplate.website.replace('%href%', this.details.website);
 		}
 	}
+
 	if (this.hasOwnProperty('sun')) {
 		/* Adjust times for timezone offset */
 		for (var i in this.sun) {
@@ -193,10 +194,28 @@ Place.prototype.buildContent = function() {
 			}
 			this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
 		}
+
 		this.content += contentTemplate.sun.replace('%sunrise%', this.sun.rise).replace('%noon%', this.sun.noon).replace('%sunset%', this.sun.set);
 	}
 
 	this.content += contentTemplate.end;
+};
+
+Place.prototype.activate = function() {
+	if (!this.active()) {
+		this.active(true);
+		this.marker.setMap(map);
+		if (this.status() == 'selected') {
+			this.marker.setAnimation(google.maps.Animation.BOUNCE);
+		}
+	}
+};
+
+Place.prototype.deactivate = function() {
+	if (this.active()) {
+		this.active(false);
+		this.marker.setMap(null);
+	}
 };
 
 var map;
@@ -215,18 +234,9 @@ var viewModel = function() {
 		vm.places.push(new Place(locationData[i]));
 	}
 
-	vm.activePlaces = ko.computed(function() {
-		var workingArray = [];
-		for (var i in vm.places) {
-			if (vm.places[i].active()) {
-				workingArray.push(vm.places[i]);
-			}
-		}
-		return workingArray;
-	});
+	vm.activePlaces = ko.observableArray(vm.places);
 
 	vm.menuStatus = ko.observable('closed');
-
 	vm.openMenu = function() {
 		if (vm.menuStatus() == 'closed'){
 			vm.menuStatus('open');
@@ -236,6 +246,7 @@ var viewModel = function() {
 	};
 
 	vm.selectedPlace = ko.observable();
+
 	vm.changePlace = function(place) {
 		if (typeof vm.selectedPlace() == 'object') {
 			vm.selectedPlace().status('deselected');
@@ -255,28 +266,30 @@ var viewModel = function() {
 	}
 
 	vm.searchTerm = ko.observable("");
-	vm.searchTerm.extend({ rateLimit: { timeout: 400, method: "notifyWhenChangesStop" } });
+	/* Search is dynamic, so this limits the rate of updates */
+	vm.searchTerm.extend({ rateLimit: {timeout: 400, method: "notifyWhenChangesStop"}});
+
 	vm.searchPlaces = function() {
+		var workingArray = [];
 		var workingPlace = '';
 		var workingSearchTerm = vm.searchTerm().toLowerCase();
 		for (var i in vm.places) {
 			workingPlace = vm.places[i].name.toLowerCase();
 			if (workingPlace.indexOf(workingSearchTerm) > -1) {
-				vm.places[i].active(true);
-				vm.places[i].marker.setMap(map);
-				if (vm.places[i] === vm.selectedPlace()) {
-					vm.places[i].marker.setAnimation(google.maps.Animation.BOUNCE);
-				}
+				vm.places[i].activate();
+				workingArray.push(vm.places[i]);
 			} else {
-				vm.places[i].active(false);
-				vm.places[i].marker.setMap(null);
+				vm.places[i].deactivate();
 			}
 		}
+		vm.activePlaces(workingArray);
 	};
+
 	vm.searchTerm.subscribe(vm.searchPlaces);
 };
 
 var initMap = function() {
+	/* Initiate google map object */
 	map = new google.maps.Map(document.getElementById('map'), {
 		center: neighborhood.center,
 		zoom: 14,
@@ -285,6 +298,7 @@ var initMap = function() {
 	    }
 	});
 
+	/* Setup a streetview object in order to set the position of the address controls */
 	panorama = map.getStreetView();
     panorama.setOptions({
 		options: {
@@ -294,10 +308,12 @@ var initMap = function() {
 		}
 	});
 
+    /* Initiate the various google maps objects that will be used */
 	geocoder = new google.maps.Geocoder();
 	infoWindow = new google.maps.InfoWindow();
 	detailService = new google.maps.places.PlacesService(map);
 
+	/* Use an API to get local weather info and call function to calculate the local time offset from UTC **/
 	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
 		neighborhood.weather = results;
 		neighborhood.calcTimeOffset();
@@ -306,6 +322,7 @@ var initMap = function() {
 	ko.applyBindings(new viewModel());
 };
 
+/* Used to calculate local time offset from UTC */
 neighborhood.calcTimeOffset = function(){
 	var utcHour = new Date().getUTCHours();
 	var utcDay = new Date().getUTCDate();
