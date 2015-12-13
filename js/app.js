@@ -77,10 +77,6 @@ var Place = function(data) {
 	} else {
 		self.getLatLng();
 	}
-
-	$(document).ajaxStop(function(){
-		self.buildContent();
-	});
 };
 
 /* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of AJAX requests. */
@@ -91,6 +87,10 @@ Place.prototype.getLatLng = function() {
 		if (status == google.maps.GeocoderStatus.OK) {
 			self.latLng = results[0].geometry.location;
 			self.createDetails();
+		} else {
+			$(document).ajaxStop(function(){
+				self.buildContent();
+			});
 		}
 	});
 };
@@ -111,19 +111,29 @@ Place.prototype.createDetails = function(){
 	var AJAXrequestStr = 'http://api.sunrise-sunset.org/json?lat=' + self.latLng.lat() + '&lng=' + self.latLng.lng();
 	$.getJSON(AJAXrequestStr, function(data){
 		self.applySunTimes(data);
+	})
+	.fail(function(){
+		console.log('error');
 	});
 
-	//TODO: see if this actually works.
-	if (self.hasOwnProperty('details.place_id')) {
-		self.getMoreDetails();
-	} else {
-		detailService.nearbySearch({location: self.latLng, radius: '100', name: self.name}, function(results, status){
-			if (status == google.maps.places.PlacesServiceStatus.OK) {
-				self.details = results[0];
-				self.getMoreDetails();
-			}
-		});
+
+	if (self.hasOwnProperty('details')) {
+		if (self.details.hasOwnProperty('place_id')) {
+			self.getMoreDetails();
+			return;
+		}
 	}
+
+	detailService.nearbySearch({location: self.latLng, radius: '100', name: self.name}, function(results, status){
+		if (status == google.maps.places.PlacesServiceStatus.OK) {
+			self.details = results[0];
+			self.getMoreDetails();
+		} else {
+			$(document).ajaxStop(function(){
+				self.buildContent();
+			});
+		}
+	});
 };
 
 /* Temporarily assign results from nearbySearch() then assign results from getDetails()*/
@@ -136,6 +146,10 @@ Place.prototype.getMoreDetails = function() {
 				self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
 			}
 		}
+	});
+
+	$(document).ajaxStop(function(){
+		self.buildContent();
 	});
 };
 
@@ -214,6 +228,10 @@ Place.prototype.activate = function() {
 Place.prototype.deactivate = function() {
 	if (this.active()) {
 		this.active(false);
+		if (! this.hasOwnProperty('marker')) {
+			console.log(this);
+			return;
+		}
 		this.marker.setMap(null);
 	}
 };
@@ -241,10 +259,19 @@ var vm;
 var viewModel = function() {
 	vm = this;
 
-	vm.places = [];
-	for (var i in locationData) {
-		vm.places.push(new Place(locationData[i]));
-	}
+	vm.createPlaces = function(placesArray) {
+		vm.places = [];
+		for (var i in placesArray) {
+			vm.places.push(new Place(placesArray[i]));
+		}
+
+		/* Call search when data loaded to update active places list and map markers */
+		$(document).ajaxStop(function(){
+			vm.searchPlaces();
+		});
+	};
+
+	vm.createPlaces(locationData);
 
 	vm.activePlaces = ko.observableArray(vm.places);
 
@@ -273,7 +300,7 @@ var viewModel = function() {
 	}
 
 	vm.searchTerm = ko.observable("");
-	/* Search is dynamic, so this limits the rate of updates */
+	/* Search responds immediately to any change in the input element, so this limits the rate of updates */
 	vm.searchTerm.extend({ rateLimit: {timeout: 400, method: "notifyWhenChangesStop"}});
 
 	vm.searchPlaces = function() {
@@ -293,7 +320,38 @@ var viewModel = function() {
 	};
 
 	vm.searchTerm.subscribe(vm.searchPlaces);
+
+	vm.googleSearch = function(obj, evt) {
+		if (evt.keyCode == 13 && evt.shiftKey == true) {
+			vm.removePlaces();
+			vm.createPlaces(locationData);
+		} else if (evt.keyCode == 13) {
+			vm.removePlaces();
+			detailService.nearbySearch({location: neighborhood.center, radius: '2000', name: vm.searchTerm()}, function(results, status){
+				if (status == google.maps.places.PlacesServiceStatus.OK) {
+					var workingArray = [];
+					for (var i in results) {
+						workingArray.push({
+							address: results[i].vicinity,
+							name: results[i].name,
+							latLng: results[i].geometry.location,
+							details: results[i]
+						});
+					}
+					vm.createPlaces(workingArray);
+				}
+			});
+		}
+	};
+
+	vm.removePlaces = function() {
+		for (var i in vm.places) {
+			vm.places[i].deselect();
+			vm.places[i].deactivate();
+		}
+	}
 };
+
 
 var initMap = function() {
 	/* Initiate google map object */
