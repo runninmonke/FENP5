@@ -181,6 +181,23 @@ Place.prototype.buildContent = function() {
 	this.content += contentTemplate.end;
 };
 
+Place.prototype.activate = function() {
+	if (!this.active()) {
+		this.active(true);
+		this.marker.setMap(map);
+		if (this.status == 'selected') {
+			this.marker.setAnimation(google.maps.Animation.BOUNCE);
+		}
+	}
+};
+
+Place.prototype.deactivate = function() {
+	if (this.active()) {
+		this.active(false);
+		this.marker.setMap(null);
+	}
+};
+
 var map;
 var geocoder;
 var infoWindow;
@@ -233,28 +250,26 @@ var viewModel = function() {
 	vm.searchTerm.extend({ rateLimit: {timeout: 400, method: "notifyWhenChangesStop"}});
 
 	vm.searchPlaces = function() {
-		vm.activePlaces([]);
+		var workingArray = [];
 		var workingPlace = '';
 		var workingSearchTerm = vm.searchTerm().toLowerCase();
 		for (var i in vm.places) {
 			workingPlace = vm.places[i].name.toLowerCase();
 			if (workingPlace.indexOf(workingSearchTerm) > -1) {
-				vm.places[i].active(true);
-				vm.activePlaces.push(vm.places[i]);
-				vm.places[i].marker.setMap(map);
-				if (vm.places[i] === vm.selectedPlace()) {
-					vm.places[i].marker.setAnimation(google.maps.Animation.BOUNCE);
-				}
+				vm.places[i].activate();
+				workingArray.push(vm.places[i]);
 			} else {
-				vm.places[i].active(false);
-				vm.places[i].marker.setMap(null);
+				vm.places[i].deactivate();
 			}
 		}
+		vm.activePlaces(workingArray);
 	};
+
 	vm.searchTerm.subscribe(vm.searchPlaces);
 };
 
 var initMap = function() {
+	/* Initiate google map object */
 	map = new google.maps.Map(document.getElementById('map'), {
 		center: neighborhood.center,
 		zoom: 14,
@@ -263,6 +278,7 @@ var initMap = function() {
 	    }
 	});
 
+	/* Setup a streetview object in order to set the position of the address controls */
 	panorama = map.getStreetView();
     panorama.setOptions({
 		options: {
@@ -272,10 +288,12 @@ var initMap = function() {
 		}
 	});
 
+    /* Initiate the various google maps objects that will be used */
 	geocoder = new google.maps.Geocoder();
 	infoWindow = new google.maps.InfoWindow();
 	detailService = new google.maps.places.PlacesService(map);
 
+	/* Use an API to get local weather info and call function to calculate the local time offset from UTC **/
 	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
 		neighborhood.weather = results;
 		neighborhood.calcTimeOffset();
@@ -284,6 +302,7 @@ var initMap = function() {
 	ko.applyBindings(new viewModel());
 };
 
+/* Used to calculate local time offset from UTC */
 neighborhood.calcTimeOffset = function(){
 	var utcHour = new Date().getUTCHours();
 	var utcDay = new Date().getUTCDate();
