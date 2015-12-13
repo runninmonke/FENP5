@@ -218,6 +218,18 @@ Place.prototype.deactivate = function() {
 	}
 };
 
+Place.prototype.select = function() {
+	this.status('selected');
+	this.marker.setAnimation(google.maps.Animation.BOUNCE);
+	infoWindow.setContent(this.content);
+	infoWindow.open(map, this.marker);
+};
+
+Place.prototype.deselect = function() {
+	this.status('deselected');
+	this.marker.setAnimation(null);
+};
+
 var map;
 var geocoder;
 var infoWindow;
@@ -249,8 +261,7 @@ var viewModel = function() {
 
 	vm.changePlace = function(place) {
 		if (typeof vm.selectedPlace() == 'object') {
-			vm.selectedPlace().status('deselected');
-			vm.selectedPlace().marker.setAnimation(null);
+			vm.selectedPlace().deselect();
 			if (place === vm.selectedPlace()) {
 				vm.selectedPlace = ko.observable();
 				infoWindow.close();
@@ -258,11 +269,7 @@ var viewModel = function() {
 			}
 		}
 		vm.selectedPlace(place);
-		vm.selectedPlace().status('selected');
-		vm.selectedPlace().marker.setAnimation(google.maps.Animation.BOUNCE);
-		infoWindow.setContent(vm.selectedPlace().content);
-		infoWindow.open(map, vm.selectedPlace().marker);
-
+		vm.selectedPlace().select();
 	}
 
 	vm.searchTerm = ko.observable("");
