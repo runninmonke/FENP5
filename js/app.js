@@ -1,9 +1,20 @@
-'use strict'
+// Hello.
+//
+// This is JSHint, a tool that helps to detect errors and potential
+// problems in your JavaScript code.
+//
+// To start, simply enter some JavaScript anywhere on this page. Your
+// report will appear on the right side.
+//
+// Additionally, you can toggle specific options in the Configure
+// menu.
+
+'use strict';
 
 var INFO_PHOTO = {
 	maxWidth: 200,
 	maxHeight: 200
-}
+};
 
 var neighborhood = {
 	name: "Midtown",
@@ -52,60 +63,81 @@ var contentTemplate = {
 };
 
 var Place = function(data) {
+	var self = this;
 	for (var item in data) {
 		if (data.hasOwnProperty(item)){
-			this[item] = data[item];
+			self[item] = data[item];
 		}
 	}
-	this.active = ko.observable(true);
-	this.status = ko.observable('deselected');
+	self.active = ko.observable(true);
+	self.status = ko.observable('deselected');
 
-	var self = this;
-	/* Get info from geocoder and call function to populate properties with results and add a marker*/
-	geocoder.geocode({address: this.address}, function(results, status) {self.applyGeocode(results, status);});
-
-}
-
-/* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of
-*  AJAX requests. The final successful one calls the buildContent method */
-Place.prototype.applyGeocode = function(results, status) {
-	var self = this;
-	if (status == google.maps.GeocoderStatus.OK) {
-		this.latLng = results[0].geometry.location;
-		this.marker = new google.maps.Marker({
-			position: this.latLng,
-			map: map,
-			title: this.name
-		});
-	this.marker.addListener('click', function(){vm.changePlace(self);});
-	detailService.nearbySearch({location: this.latLng, radius: '100', name: this.name}, function(results, status){self.applyDetails(results, status);});
-	var requestStr = 'http://api.sunrise-sunset.org/json?lat=' + this.latLng.lat() + '&lng=' + this.latLng.lng();
-	$.getJSON(requestStr, function(data){self.applySunTimes(data)});
+	if (self.hasOwnProperty('latLng')) {
+		self.createDetails();
 	} else {
-		this.buildContent();
+		self.getLatLng();
 	}
-}
 
-/* Temporarily assign results from nearbySearch() then assign results from getDetails()*/
-Place.prototype.applyDetails = function(results, status){
+	$(document).ajaxStop(function(){
+		self.buildContent();
+	});
+};
+
+/* Populate properties with Geocoderesults, add a marker and try to get additional details via a series of AJAX requests. */
+Place.prototype.getLatLng = function() {
+	/* Set self = this as a way to make the object's methods available to the callback function. */
 	var self = this;
-	if (status == google.maps.places.PlacesServiceStatus.OK) {
-		this.details = results[0];
-		detailService.getDetails({placeId: this.details.place_id}, function(results, status){
+	geocoder.geocode({address: self.address}, function(results, status) {
+		if (status == google.maps.GeocoderStatus.OK) {
+			self.latLng = results[0].geometry.location;
+			self.createDetails();
+		}
+	});
+};
+
+Place.prototype.createDetails = function(){
+	var self = this;
+	self.marker = new google.maps.Marker({
+		position: self.latLng,
+		map: map,
+		title: self.name
+	});
+
+	self.marker.addListener('click', function(){
+		vm.changePlace(self);
+	});
+
+	/* AJAX request for sunrise/set etc */
+	var AJAXrequestStr = 'http://api.sunrise-sunset.org/json?lat=' + self.latLng.lat() + '&lng=' + self.latLng.lng();
+	$.getJSON(AJAXrequestStr, function(data){
+		self.applySunTimes(data);
+	});
+
+	//TODO: see if this actually works.
+	if (self.hasOwnProperty('details.place_id')) {
+		self.getMoreDetails();
+	} else {
+		detailService.nearbySearch({location: self.latLng, radius: '100', name: self.name}, function(results, status){
 			if (status == google.maps.places.PlacesServiceStatus.OK) {
-				self.details = results;
-				if (results.hasOwnProperty('photos')){
-					self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
-				}
-				self.buildContent();
-			} else {
-				self.buildContent();
+				self.details = results[0];
+				self.getMoreDetails();
 			}
 		});
-	} else {
-		self.buildContent();
 	}
-}
+};
+
+/* Temporarily assign results from nearbySearch() then assign results from getDetails()*/
+Place.prototype.getMoreDetails = function() {
+	var self = this;
+	detailService.getDetails({placeId: self.details.place_id}, function(results, status){
+		if (status == google.maps.places.PlacesServiceStatus.OK) {
+			self.details = results;
+			if (results.hasOwnProperty('photos')){
+				self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
+			}
+		}
+	});
+};
 
 Place.prototype.applySunTimes = function(data) {
 	if (data.status != 'OK') {
@@ -116,39 +148,10 @@ Place.prototype.applySunTimes = function(data) {
 		rise: data.results.sunrise,
 		set: data.results.sunset,
 		noon: data.results.solar_noon
-	}
+	};
+};
 
-	/* Adjust times for timezone offset
-	*  TODO: refactor into a seperate place method and utilize $(document).ajaxStop()*/
-	for (var i in this.sun) {
-		var origAMorPM = this.sun[i].split(' ')[1];
-		var newAMorPM = origAMorPM;
-		var origHour = Number(this.sun[i].split(':')[0]);
-		var newHour = origHour + neighborhood.weather.utcOffset;
-		if (origAMorPM == 'PM') {
-			newHour += 12;
-		}
-		if (newHour < 1) {
-			newHour += 12;
-		}
-		if (newHour < 12){
-			newAMorPM = 'AM';
-			if (newHour == 0) {
-				newHour = 12;
-			}
-		} else {
-			newAMorPM = 'PM';
-		}
-		if (newHour > 12) {
-			newHour = newHour - 12;
-		}
-		this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
-	}
-
-	this.buildContent();
-}
-
-/* Builds the content the place displays in the infoWindow when selected */
+/* Builds the content the place displays in the infoWindow*/
 Place.prototype.buildContent = function() {
 	this.content = contentTemplate.start;
 	this.content += contentTemplate.name.replace('%text%', this.name);
@@ -164,17 +167,62 @@ Place.prototype.buildContent = function() {
 			this.content += contentTemplate.website.replace('%href%', this.details.website);
 		}
 	}
+
 	if (this.hasOwnProperty('sun')) {
+		/* Adjust times for timezone offset */
+		for (var i in this.sun) {
+			var origAMorPM = this.sun[i].split(' ')[1];
+			var newAMorPM = origAMorPM;
+			var origHour = Number(this.sun[i].split(':')[0]);
+			var newHour = origHour + neighborhood.weather.utcOffset;
+			if (origAMorPM == 'PM') {
+				newHour += 12;
+			}
+			if (newHour < 1) {
+				newHour += 12;
+			}
+			if (newHour < 12){
+				newAMorPM = 'AM';
+				if (newHour === 0) {
+					newHour = 12;
+				}
+			} else {
+				newAMorPM = 'PM';
+			}
+			if (newHour > 12) {
+				newHour = newHour - 12;
+			}
+			this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
+		}
+
 		this.content += contentTemplate.sun.replace('%sunrise%', this.sun.rise).replace('%noon%', this.sun.noon).replace('%sunset%', this.sun.set);
 	}
 
 	this.content += contentTemplate.end;
-}
+};
+
+Place.prototype.activate = function() {
+	if (!this.active()) {
+		this.active(true);
+		this.marker.setMap(map);
+		if (this.status == 'selected') {
+			this.marker.setAnimation(google.maps.Animation.BOUNCE);
+		}
+	}
+};
+
+Place.prototype.deactivate = function() {
+	if (this.active()) {
+		this.active(false);
+		this.marker.setMap(null);
+	}
+};
 
 var map;
 var geocoder;
 var infoWindow;
 var detailService;
+var panorama;
 var vm;
 
 
@@ -186,18 +234,9 @@ var viewModel = function() {
 		vm.places.push(new Place(locationData[i]));
 	}
 
-	vm.activePlaces = ko.computed(function() {
-		var workingArray = [];
-		for (var i in vm.places) {
-			if (vm.places[i].active()) {
-				workingArray.push(vm.places[i]);
-			}
-		}
-		return workingArray;
-	});
+	vm.activePlaces = ko.observableArray(vm.places);
 
 	vm.menuStatus = ko.observable('closed');
-
 	vm.openMenu = function() {
 		if (vm.menuStatus() == 'closed'){
 			vm.menuStatus('open');
@@ -207,6 +246,7 @@ var viewModel = function() {
 	};
 
 	vm.selectedPlace = ko.observable();
+
 	vm.changePlace = function(place) {
 		if (typeof vm.selectedPlace() == 'object') {
 			vm.selectedPlace().status('deselected');
@@ -221,45 +261,59 @@ var viewModel = function() {
 		vm.selectedPlace().status('selected');
 		vm.selectedPlace().marker.setAnimation(google.maps.Animation.BOUNCE);
 		infoWindow.setContent(vm.selectedPlace().content);
-		infoWindow.open(map, vm.selectedPlace().marker)
+		infoWindow.open(map, vm.selectedPlace().marker);
 
 	}
 
 	vm.searchTerm = ko.observable("");
-	vm.searchTerm.extend({ rateLimit: { timeout: 400, method: "notifyWhenChangesStop" } });
+	/* Search is dynamic, so this limits the rate of updates */
+	vm.searchTerm.extend({ rateLimit: {timeout: 400, method: "notifyWhenChangesStop"}});
+
 	vm.searchPlaces = function() {
+		var workingArray = [];
 		var workingPlace = '';
 		var workingSearchTerm = vm.searchTerm().toLowerCase();
 		for (var i in vm.places) {
 			workingPlace = vm.places[i].name.toLowerCase();
 			if (workingPlace.indexOf(workingSearchTerm) > -1) {
-				vm.places[i].active(true);
-				vm.places[i].marker.setMap(map);
-				if (vm.places[i] === vm.selectedPlace()) {
-					vm.places[i].marker.setAnimation(google.maps.Animation.BOUNCE);
-				}
+				vm.places[i].activate();
+				workingArray.push(vm.places[i]);
 			} else {
-				vm.places[i].active(false);
-				vm.places[i].marker.setMap(null);
+				vm.places[i].deactivate();
 			}
 		}
-	}
+		vm.activePlaces(workingArray);
+	};
+
 	vm.searchTerm.subscribe(vm.searchPlaces);
 };
 
 var initMap = function() {
+	/* Initiate google map object */
 	map = new google.maps.Map(document.getElementById('map'), {
 		center: neighborhood.center,
-		zoom: 14
+		zoom: 14,
+		mapTypeControlOptions: {
+			position: google.maps.ControlPosition.TOP_RIGHT
+	    }
 	});
+
+	/* Setup a streetview object in order to set the position of the address controls */
+	panorama = map.getStreetView();
+    panorama.setOptions({
+		options: {
+			addressControlOptions: {
+				position: google.maps.ControlPosition.BOTTOM_CENTER
+			}
+		}
+	});
+
+    /* Initiate the various google maps objects that will be used */
 	geocoder = new google.maps.Geocoder();
 	infoWindow = new google.maps.InfoWindow();
 	detailService = new google.maps.places.PlacesService(map);
 
-	google.maps.event.addListenerOnce(map, 'idle', function(){
-    	$(".gmnoprint:nth-last-child(2)").attr('style', 'margin: 10px; z-index: 0; position: relative; float:right; cursor: pointer; left: 0px; top: 0px;');
-	});
-
+	/* Use an API to get local weather info and call function to calculate the local time offset from UTC **/
 	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
 		neighborhood.weather = results;
 		neighborhood.calcTimeOffset();
@@ -268,6 +322,7 @@ var initMap = function() {
 	ko.applyBindings(new viewModel());
 };
 
+/* Used to calculate local time offset from UTC */
 neighborhood.calcTimeOffset = function(){
 	var utcHour = new Date().getUTCHours();
 	var utcDay = new Date().getUTCDate();
