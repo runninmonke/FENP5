@@ -92,6 +92,7 @@ html, body {
   z-index: 1;
   pointer-events: none;
   margin-left: -235px;
+  overflow: auto;
 }
 
 #nav-bar.open {
@@ -167,4 +168,5 @@ html, body {
 
 #info-window {
   margin: -15px 0 -5px 0;
+  max-width: 200px;
 }

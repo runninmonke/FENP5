@@ -1,35 +1,16 @@
-// Hello.
-//
-// This is JSHint, a tool that helps to detect errors and potential
-// problems in your JavaScript code.
-//
-// To start, simply enter some JavaScript anywhere on this page. Your
-// report will appear on the right side.
-//
-// Additionally, you can toggle specific options in the Configure
-// menu.
-
 'use strict';
 
+/* InfoWindow photo dimensions */
 var INFO_PHOTO = {
 	maxWidth: 200,
 	maxHeight: 200
 };
 
-var neighborhood = {
-	name: "Midtown",
-	center: {
-		lat: 41.263218,
-		lng: -95.987867
-	},
-	locality: "Omaha, NE",
-	weather: {}
-};
-
+/* Initial places data. */
 var locationData = {
 	rental1: {
-		name: "Rental 1",
-		address: "1316 N 40th St, Omaha, NE 68131"
+		name: "Memorial Park",
+		address: "6005 Underwood Ave, Omaha, NE 68132"
 	},
 	cathedral: {
 		name: "St. Cecilia Cathedral",
@@ -48,11 +29,12 @@ var locationData = {
 		address: "3812 Farnam St, Omaha, NE 68131"
 	},
 	rental2: {
-		name: "Rental 2",
-		address: "1037 N 33rd St, Omaha, NE 68131"
+		name: "Amsterdam Falafel and Kabob",
+		address: "620 N 50th St, Omaha, NE 68132"
 	}
 };
 
+/* Template used format data into infoWindow DOM elements */
 var contentTemplate = {
 	sun: '<p>Sunrise: %sunrise%<br>Solar noon: %noon%<br>Sunset: %sunset%</p>',
 	website: '<a href="%href%">Website</a>',
@@ -62,16 +44,62 @@ var contentTemplate = {
 	end: '</div>'
 };
 
+/* Neighborhood data */
+var neighborhood = {
+	name: "Midtown",
+	center: {
+		lat: 41.263218,
+		lng: -95.987867
+	},
+	locality: "Omaha, NE",
+	weather: {}
+};
+
+/* Used to calculate local area time offset from UTC */
+neighborhood.calcTimeOffset = function(){
+	var utcHour = new Date().getUTCHours();
+	var utcDay = new Date().getUTCDate();
+
+	/* Parse results into local time and date */
+	var localHour = this.weather.location.localtime.split(':')[0];
+	var localDay = localHour.split('-')[2].split(' ')[0];
+	localHour = Number(localHour.split(' ')[1]);
+
+	/* Factor any date difference into the hours */
+	var dateDifference = localDay - utcDay;
+	if (dateDifference == 1) {
+		localHour += 24;
+	} else if (dateDifference == -1) {
+		utcHour += 24;
+	} else if (dateDifference > 1) {
+		utcHour += 24;
+	} else if (dateDifference < -1) {
+		localHour += 24;
+	}
+
+	/* Deterimine current neighborhood time offset */
+	this.weather.utcOffset = (localHour - utcHour);
+};
+
+
+/* Place class to create all the place objects for the map */
 var Place = function(data) {
 	var self = this;
+
+	/* Can have extra properties, but must include name and address */
 	for (var item in data) {
 		if (data.hasOwnProperty(item)){
 			self[item] = data[item];
 		}
 	}
+
 	self.active = ko.observable(true);
 	self.status = ko.observable('deselected');
 
+	/* Loading message in case of user click before content is built */
+	self.content = 'Loading...';
+
+	/* Skip the geocode request if latLng property was already passed in */
 	if (self.hasOwnProperty('latLng')) {
 		self.createDetails();
 	} else {
@@ -97,12 +125,15 @@ Place.prototype.getLatLng = function() {
 
 Place.prototype.createDetails = function(){
 	var self = this;
+
+	/* Create map marker */
 	self.marker = new google.maps.Marker({
 		position: self.latLng,
 		map: map,
 		title: self.name
 	});
 
+	/* Allow selected place to also be changed by clicking map markers */
 	self.marker.addListener('click', function(){
 		vm.changePlace(self);
 	});
@@ -116,7 +147,7 @@ Place.prototype.createDetails = function(){
 		console.log('error');
 	});
 
-
+	/* Skip finding google place id if it was passed in on place initialization */
 	if (self.hasOwnProperty('details')) {
 		if (self.details.hasOwnProperty('place_id')) {
 			self.getMoreDetails();
@@ -124,7 +155,9 @@ Place.prototype.createDetails = function(){
 		}
 	}
 
-	detailService.nearbySearch({location: self.latLng, radius: '100', name: self.name}, function(results, status){
+	/* Search immediate vicinity to see if location is in Google Places and then get place id for the Ajax call in getMoreDetails.
+	*  Otherwise no more ajax calls, so build content when existing ones complete */
+	detailService.nearbySearch({location: self.latLng, radius: '500', name: self.name}, function(results, status){
 		if (status == google.maps.places.PlacesServiceStatus.OK) {
 			self.details = results[0];
 			self.getMoreDetails();
@@ -136,7 +169,8 @@ Place.prototype.createDetails = function(){
 	});
 };
 
-/* Temporarily assign results from nearbySearch() then assign results from getDetails()*/
+/* Use place id to get any additional details that might be available from Google Places API.
+*  Specifically place website and photos will be used in buildContent if they exist. */
 Place.prototype.getMoreDetails = function() {
 	var self = this;
 	detailService.getDetails({placeId: self.details.place_id}, function(results, status){
@@ -153,6 +187,7 @@ Place.prototype.getMoreDetails = function() {
 	});
 };
 
+/* Callback for sunrise/set API */
 Place.prototype.applySunTimes = function(data) {
 	if (data.status != 'OK') {
 		return;
@@ -165,15 +200,17 @@ Place.prototype.applySunTimes = function(data) {
 	};
 };
 
-/* Builds the content the place displays in the infoWindow*/
+/* Check for what data has been successfully retrieved and build content for infoWindow by plugging it into the template */
 Place.prototype.buildContent = function() {
 	this.content = contentTemplate.start;
 	this.content += contentTemplate.name.replace('%text%', this.name);
 
+	/* Use google streetview image if no place photo exists */
 	if (! this.photoUrl) {
 		this.photoUrl = 'https://maps.googleapis.com/maps/api/streetview?fov=120&key=AIzaSyB7LiznjiujsNwqvwGu7jMg6xVmnVTVSek&size=' +
 			INFO_PHOTO.maxWidth + 'x' + INFO_PHOTO.maxHeight +'&location=' + this.address;
 	}
+
 	this.content += contentTemplate.photo.replace('%src%', this.photoUrl).replace('%alt%', 'Photo of ' + this.name);
 
 	if (this.hasOwnProperty('details')) {
@@ -213,6 +250,11 @@ Place.prototype.buildContent = function() {
 	}
 
 	this.content += contentTemplate.end;
+
+	/* Update infoWindow content if currently selected */
+	if (this.status() == 'selected') {
+		infoWindow.setContent(this.content);
+	}
 };
 
 Place.prototype.activate = function() {
@@ -238,9 +280,11 @@ Place.prototype.deactivate = function() {
 
 Place.prototype.select = function() {
 	this.status('selected');
-	this.marker.setAnimation(google.maps.Animation.BOUNCE);
-	infoWindow.setContent(this.content);
-	infoWindow.open(map, this.marker);
+	if (this.hasOwnProperty('marker')) {
+		this.marker.setAnimation(google.maps.Animation.BOUNCE);
+		infoWindow.setContent(this.content);
+		infoWindow.open(map, this.marker);
+	}
 };
 
 Place.prototype.deselect = function() {
@@ -248,6 +292,7 @@ Place.prototype.deselect = function() {
 	this.marker.setAnimation(null);
 };
 
+/* Declare variables that need to be global (mostly necessary due to Ajax callback functions) */
 var map;
 var geocoder;
 var infoWindow;
@@ -259,23 +304,30 @@ var vm;
 var viewModel = function() {
 	vm = this;
 
+	vm.activePlaces = ko.observableArray([]);
+
+	/* Initialize new array of places for map */
 	vm.createPlaces = function(placesArray) {
 		vm.places = [];
 		for (var i in placesArray) {
 			vm.places.push(new Place(placesArray[i]));
 		}
 
-		/* Call search when data loaded to update active places list and map markers */
+		/* Copy to active places to immediately display list */
+		vm.activePlaces(vm.places);
+
+		/* Call search when data loaded to update activePlaces list and map markers */
 		$(document).ajaxStop(function(){
 			vm.searchPlaces();
 		});
 	};
 
+	/* Use hard-coded data for initial set of places */
 	vm.createPlaces(locationData);
 
-	vm.activePlaces = ko.observableArray(vm.places);
-
 	vm.menuStatus = ko.observable('closed');
+
+	/* Toggle menu nav-bar open and closed */
 	vm.openMenu = function() {
 		if (vm.menuStatus() == 'closed'){
 			vm.menuStatus('open');
@@ -286,6 +338,7 @@ var viewModel = function() {
 
 	vm.selectedPlace = ko.observable();
 
+	/* Toggle or change selected place */
 	vm.changePlace = function(place) {
 		if (typeof vm.selectedPlace() == 'object') {
 			vm.selectedPlace().deselect();
@@ -297,12 +350,15 @@ var viewModel = function() {
 		}
 		vm.selectedPlace(place);
 		vm.selectedPlace().select();
+		/* Allow default click action as well by returning true */
+		return true;
 	}
 
 	vm.searchTerm = ko.observable("");
 	/* Search responds immediately to any change in the input element, so this limits the rate of updates */
 	vm.searchTerm.extend({ rateLimit: {timeout: 400, method: "notifyWhenChangesStop"}});
 
+	/* Filter current set of places by the searchTerm */
 	vm.searchPlaces = function() {
 		var workingArray = [];
 		var workingPlace = '';
@@ -319,8 +375,10 @@ var viewModel = function() {
 		vm.activePlaces(workingArray);
 	};
 
+	/* Run search places anytime the searchTerm changes */
 	vm.searchTerm.subscribe(vm.searchPlaces);
 
+	/* Run a Google search for nearby places with current searchTerm */
 	vm.googleSearch = function(obj, evt) {
 		if (evt.keyCode == 13 && evt.shiftKey == true) {
 			vm.removePlaces();
@@ -344,6 +402,7 @@ var viewModel = function() {
 		}
 	};
 
+	/* Used to remove all traces of current set of places in preparation for intializing another */
 	vm.removePlaces = function() {
 		for (var i in vm.places) {
 			vm.places[i].deselect();
@@ -352,7 +411,7 @@ var viewModel = function() {
 	}
 };
 
-
+/* Callback function for the initial Google Maps API request */
 var initMap = function() {
 	/* Initiate google map object */
 	map = new google.maps.Map(document.getElementById('map'), {
@@ -384,31 +443,6 @@ var initMap = function() {
 		neighborhood.calcTimeOffset();
 	});
 
+	/* Initiate the view-model */
 	ko.applyBindings(new viewModel());
-};
-
-/* Used to calculate local time offset from UTC */
-neighborhood.calcTimeOffset = function(){
-	var utcHour = new Date().getUTCHours();
-	var utcDay = new Date().getUTCDate();
-
-	/* Parse results into local time and date */
-	var localHour = this.weather.location.localtime.split(':')[0];
-	var localDay = localHour.split('-')[2].split(' ')[0];
-	localHour = Number(localHour.split(' ')[1]);
-
-	/* Factor any date difference into the hours */
-	var dateDifference = localDay - utcDay;
-	if (dateDifference == 1) {
-		localHour += 24;
-	} else if (dateDifference == -1) {
-		utcHour += 24;
-	} else if (dateDifference > 1) {
-		utcHour += 24;
-	} else if (dateDifference < -1) {
-		localHour += 24;
-	}
-
-	/* Deterimine current neighborhood time offset */
-	this.weather.utcOffset = (localHour - utcHour);
 };
