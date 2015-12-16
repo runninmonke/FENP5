@@ -171,6 +171,35 @@ Place.prototype.applySunTimes = function(data) {
 		set: data.results.sunset,
 		noon: data.results.solar_noon
 	};
+
+	for (var i in this.sun) {
+		if (neighborhood.hasOwnProperty('weather')) {
+			var origAMorPM = this.sun[i].split(' ')[1];
+			var newAMorPM = origAMorPM;
+			var origHour = Number(this.sun[i].split(':')[0]);
+			var newHour = origHour + neighborhood.weather.utcOffset;
+			if (origAMorPM == 'PM') {
+				newHour += 12;
+			}
+			if (newHour < 1) {
+				newHour += 12;
+			}
+			if (newHour < 12){
+				newAMorPM = 'AM';
+				if (newHour === 0) {
+					newHour = 12;
+				}
+			} else {
+				newAMorPM = 'PM';
+			}
+			if (newHour > 12) {
+				newHour = newHour - 12;
+			}
+			this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
+		} else {
+			this.sun[i] = this.sun[i] + " UTC";
+		}
+	}
 };
 
 /* Use place id to get any additional details that might be available from Google Places API.
@@ -210,32 +239,6 @@ Place.prototype.buildContent = function() {
 	}
 
 	if (this.hasOwnProperty('sun')) {
-		/* Adjust times for timezone offset */
-		for (var i in this.sun) {
-			var origAMorPM = this.sun[i].split(' ')[1];
-			var newAMorPM = origAMorPM;
-			var origHour = Number(this.sun[i].split(':')[0]);
-			var newHour = origHour + neighborhood.weather.utcOffset;
-			if (origAMorPM == 'PM') {
-				newHour += 12;
-			}
-			if (newHour < 1) {
-				newHour += 12;
-			}
-			if (newHour < 12){
-				newAMorPM = 'AM';
-				if (newHour === 0) {
-					newHour = 12;
-				}
-			} else {
-				newAMorPM = 'PM';
-			}
-			if (newHour > 12) {
-				newHour = newHour - 12;
-			}
-			this.sun[i] = this.sun[i].replace(origHour, newHour).replace(origAMorPM, newAMorPM);
-		}
-
 		this.content += contentTemplate.sun.replace('%sunrise%', this.sun.rise).replace('%noon%', this.sun.noon).replace('%sunset%', this.sun.set);
 	}
 
@@ -270,31 +273,32 @@ Place.prototype.deactivate = function() {
 
 
 Place.prototype.select = function() {
-	this.status('selected');
+	var self = this
+	self.status('selected');
 
 	/* If first time being selected, get more details if possible and build content. The getDetails request
 	*  is delayed until now when the content is actually needed due to small query limits. */
-	if (this.firstClick) {
+	if (self.firstClick) {
 
 		/* Make sure content will get rebuilt if unfinished ajax requests complete. */
 		$(document).ajaxStop(function(){
 			self.buildContent();
 		});
 
-		this.firstClick = false;
+		self.firstClick = false;
 
-		if (this.details.place_id) {
-			this.getMoreDetails();
+		if (self.details.place_id) {
+			self.getMoreDetails();
 		} else {
 			self.buildContent();
 		}
 	}
 
 	/* Adjust map marker and info to show place is selected */
-	if (this.hasOwnProperty('marker')) {
-		this.marker.setAnimation(google.maps.Animation.BOUNCE);
-		infoWindow.setContent(this.content);
-		infoWindow.open(map, this.marker);
+	if (self.hasOwnProperty('marker')) {
+		self.marker.setAnimation(google.maps.Animation.BOUNCE);
+		infoWindow.setContent(self.content);
+		infoWindow.open(map, self.marker);
 	}
 };
 
