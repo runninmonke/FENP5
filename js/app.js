@@ -95,6 +95,7 @@ var Place = function(data) {
 
 	self.active = ko.observable(true);
 	self.status = ko.observable('deselected');
+	self.firstClick = true;
 
 	/* Loading message in case of user click before content is built */
 	self.content = 'Loading...';
@@ -115,10 +116,6 @@ Place.prototype.getLatLng = function() {
 		if (status == google.maps.GeocoderStatus.OK) {
 			self.latLng = results[0].geometry.location;
 			self.createDetails();
-		} else {
-			$(document).ajaxStop(function(){
-				self.buildContent();
-			});
 		}
 	});
 };
@@ -147,43 +144,19 @@ Place.prototype.createDetails = function(){
 		console.log('error');
 	});
 
-	/* Skip finding google place id if it was passed in on place initialization */
+	/* Skip getting details from google if they were passed in on place initialization and include the place id*/
 	if (self.hasOwnProperty('details')) {
 		if (self.details.hasOwnProperty('place_id')) {
-			self.getMoreDetails();
 			return;
 		}
 	}
 
-	/* Search immediate vicinity to see if location is in Google Places and then get place id for the Ajax call in getMoreDetails.
-	*  Otherwise no more ajax calls, so build content when existing ones complete */
+	/* Search immediate vicinity to see if location is in Google Places and get details, mainly to use the place id
+	*  for the Ajax call in getMoreDetails. */
 	detailService.nearbySearch({location: self.latLng, radius: '500', name: self.name}, function(results, status){
 		if (status == google.maps.places.PlacesServiceStatus.OK) {
 			self.details = results[0];
-			self.getMoreDetails();
-		} else {
-			$(document).ajaxStop(function(){
-				self.buildContent();
-			});
 		}
-	});
-};
-
-/* Use place id to get any additional details that might be available from Google Places API.
-*  Specifically place website and photos will be used in buildContent if they exist. */
-Place.prototype.getMoreDetails = function() {
-	var self = this;
-	detailService.getDetails({placeId: self.details.place_id}, function(results, status){
-		if (status == google.maps.places.PlacesServiceStatus.OK) {
-			self.details = results;
-			if (results.hasOwnProperty('photos')){
-				self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
-			}
-		}
-	});
-
-	$(document).ajaxStop(function(){
-		self.buildContent();
 	});
 };
 
@@ -198,6 +171,23 @@ Place.prototype.applySunTimes = function(data) {
 		set: data.results.sunset,
 		noon: data.results.solar_noon
 	};
+};
+
+/* Use place id to get any additional details that might be available from Google Places API.
+*  Specifically place website and photos will be used in buildContent if they exist. */
+Place.prototype.getMoreDetails = function() {
+	var self = this;
+
+	detailService.getDetails({placeId: self.details.place_id}, function(results, status){
+		if (status == google.maps.places.PlacesServiceStatus.OK) {
+			self.details = results;
+			if (results.hasOwnProperty('photos')){
+				self.photoUrl = results.photos[0].getUrl(INFO_PHOTO);
+			}
+		}
+
+		self.buildContent();
+	});
 };
 
 /* Check for what data has been successfully retrieved and build content for infoWindow by plugging it into the template */
@@ -278,8 +268,29 @@ Place.prototype.deactivate = function() {
 	}
 };
 
+
 Place.prototype.select = function() {
 	this.status('selected');
+
+	/* If first time being selected, get more details if possible and build content. The getDetails request
+	*  is delayed until now when the content is actually needed due to small query limits. */
+	if (this.firstClick) {
+
+		/* Make sure content will get rebuilt if unfinished ajax requests complete. */
+		$(document).ajaxStop(function(){
+			self.buildContent();
+		});
+
+		this.firstClick = false;
+
+		if (this.details.place_id) {
+			this.getMoreDetails();
+		} else {
+			self.buildContent();
+		}
+	}
+
+	/* Adjust map marker and info to show place is selected */
 	if (this.hasOwnProperty('marker')) {
 		this.marker.setAnimation(google.maps.Animation.BOUNCE);
 		infoWindow.setContent(this.content);
