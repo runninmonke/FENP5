@@ -16,11 +16,11 @@
 			<input type="text" name="filter" id="search-field" data-bind="textInput: filterTerm, event: {keyup: googleSearch}">
 			<section id="weather">
 				<figure id="cur-condition">
-					<img data-bind="attr: {src: conditionImg}" alt=''>
-					<figcaption id="cur-cond-text" data-bind="text: currentCondition">
+					<img id="cond-img"data-bind="attr: {src: conditionImg}" alt=''>
+					<p id="cur-cond-text" data-bind="text: currentCondition"><p>
 				</figure>
 				<div id="temps">
-					<p id="temp" data-bind="text: currentTemp"></p><p id="high-temp" data-bind="text: maxTemp"></p><p id='low-temp' data-bind="text: minTemp"></p>
+					<p id="temp" data-bind="text: currentTemp"></p><p id='low-temp' data-bind="text: minTemp"></p><p id="high-temp" data-bind="text: maxTemp"></p>
 				</div>
 			</section>
 			<ul id="location-list" data-bind="foreach: activePlaces">
