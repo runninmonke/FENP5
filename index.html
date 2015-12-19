@@ -13,7 +13,16 @@
 
 	<body>
 		<div id="nav-bar" data-bind="attr: {class: menuStatus}">
-			<input type="text" name="search" id="search-field" data-bind="textInput: searchTerm, event: {keyup: googleSearch}">
+			<input type="text" name="filter" id="search-field" data-bind="textInput: filterTerm, event: {keyup: googleSearch}">
+			<section id="weather">
+				<figure id="cur-condition">
+					<img data-bind="attr: {src: conditionImg}" alt=''>
+					<figcaption id="cur-cond-text" data-bind="text: currentCondition">
+				</figure>
+				<div id="temps">
+					<p id="temp" data-bind="text: currentTemp"></p><p id="high-temp" data-bind="text: maxTemp"></p><p id='low-temp' data-bind="text: minTemp"></p>
+				</div>
+			</section>
 			<ul id="location-list" data-bind="foreach: activePlaces">
 				<li data-bind="text: name, click: $parent.changePlace, attr: {class: status}"></li>
 			</ul>

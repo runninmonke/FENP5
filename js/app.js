@@ -6,9 +6,17 @@ var INFO_PHOTO = {
 	maxHeight: 200
 };
 
+/* Radius in meters to search for Google Place object of locationdData */
+var IMMEDIATE_SEARCH_RADIUS = 500;
+/* Radius to for near by places Google search */
+var NEARBY_SEARCH_RADIUS = 2000;
+/* Delay before filter refresh */
+var FILTER_TIMEOUT = 400;
+
+
 /* Initial places data. */
 var locationData = {
-	rental1: {
+	memPark: {
 		name: "Memorial Park",
 		address: "6005 Underwood Ave, Omaha, NE 68132"
 	},
@@ -28,7 +36,7 @@ var locationData = {
 		name: "Brothers",
 		address: "3812 Farnam St, Omaha, NE 68131"
 	},
-	rental2: {
+	amsterdam: {
 		name: "Amsterdam Falafel and Kabob",
 		address: "620 N 50th St, Omaha, NE 68132"
 	}
@@ -153,7 +161,7 @@ Place.prototype.createDetails = function(){
 
 	/* Search immediate vicinity to see if location is in Google Places and get details, mainly to use the place id
 	*  for the Ajax call in getMoreDetails. */
-	detailService.nearbySearch({location: self.latLng, radius: '500', name: self.name}, function(results, status){
+	detailService.nearbySearch({location: self.latLng, radius: IMMEDIATE_SEARCH_RADIUS, name: self.name}, function(results, status){
 		if (status == google.maps.places.PlacesServiceStatus.OK) {
 			self.details = results[0];
 		}
@@ -172,6 +180,7 @@ Place.prototype.applySunTimes = function(data) {
 		noon: data.results.solar_noon
 	};
 
+	/* Calculate sunrise/set times in local time. Otherwise indicate they're in UTC */
 	for (var i in this.sun) {
 		if (neighborhood.hasOwnProperty('weather')) {
 			var origAMorPM = this.sun[i].split(' ')[1];
@@ -294,7 +303,7 @@ Place.prototype.select = function() {
 		}
 	}
 
-	/* Adjust map marker and info to show place is selected */
+	/* Adjust map marker and infoWindow to show place is selected */
 	if (self.hasOwnProperty('marker')) {
 		self.marker.setAnimation(google.maps.Animation.BOUNCE);
 		infoWindow.setContent(self.content);
@@ -331,9 +340,9 @@ var viewModel = function() {
 		/* Copy to active places to immediately display list */
 		vm.activePlaces(vm.places);
 
-		/* Call search when data loaded to update activePlaces list and map markers */
+		/* Call filter when data loaded to update activePlaces list and map markers */
 		$(document).ajaxStop(function(){
-			vm.searchPlaces();
+			vm.filterPlaces();
 		});
 	};
 
@@ -369,18 +378,18 @@ var viewModel = function() {
 		return true;
 	}
 
-	vm.searchTerm = ko.observable("");
-	/* Search responds immediately to any change in the input element, so this limits the rate of updates */
-	vm.searchTerm.extend({ rateLimit: {timeout: 400, method: "notifyWhenChangesStop"}});
+	vm.filterTerm = ko.observable("");
+	/* Filter responds immediately to any change in the input element, so this limits the rate of updates */
+	vm.filterTerm.extend({ rateLimit: {timeout: FILTER_TIMEOUT, method: "notifyWhenChangesStop"}});
 
-	/* Filter current set of places by the searchTerm */
-	vm.searchPlaces = function() {
+	/* Filter current set of places by the filterTerm */
+	vm.filterPlaces = function() {
 		var workingArray = [];
 		var workingPlace = '';
-		var workingSearchTerm = vm.searchTerm().toLowerCase();
+		var workingfilterTerm = vm.filterTerm().toLowerCase();
 		for (var i in vm.places) {
 			workingPlace = vm.places[i].name.toLowerCase();
-			if (workingPlace.indexOf(workingSearchTerm) > -1) {
+			if (workingPlace.indexOf(workingfilterTerm) > -1) {
 				vm.places[i].activate();
 				workingArray.push(vm.places[i]);
 			} else {
@@ -390,17 +399,17 @@ var viewModel = function() {
 		vm.activePlaces(workingArray);
 	};
 
-	/* Run search places anytime the searchTerm changes */
-	vm.searchTerm.subscribe(vm.searchPlaces);
+	/* Run filter places anytime the filterTerm changes */
+	vm.filterTerm.subscribe(vm.filterPlaces);
 
-	/* Run a Google search for nearby places with current searchTerm */
+	/* Run a Google search for nearby places with current filterTerm */
 	vm.googleSearch = function(obj, evt) {
 		if (evt.keyCode == 13 && evt.shiftKey == true) {
 			vm.removePlaces();
 			vm.createPlaces(locationData);
 		} else if (evt.keyCode == 13) {
 			vm.removePlaces();
-			detailService.nearbySearch({location: neighborhood.center, radius: '2000', name: vm.searchTerm()}, function(results, status){
+			detailService.nearbySearch({location: neighborhood.center, radius: NEARBY_SEARCH_RADIUS, name: vm.filterTerm()}, function(results, status){
 				if (status == google.maps.places.PlacesServiceStatus.OK) {
 					var workingArray = [];
 					for (var i in results) {
@@ -423,6 +432,22 @@ var viewModel = function() {
 			vm.places[i].deselect();
 			vm.places[i].deactivate();
 		}
+	}
+
+
+	vm.conditionImg = ko.observable('');
+	vm.currentCondition = ko.observable('');
+	vm.currentTemp = ko.observable('');
+	vm.maxTemp = ko.observable('');
+	vm.minTemp = ko.observable('');
+
+	/* Display neighborhood weather in nav bar */
+	vm.displayWeather = function () {
+		vm.conditionImg('http://' + neighborhood.weather.current.condition.icon);
+		vm.currentCondition(neighborhood.weather.current.condition.text);
+		vm.currentTemp(neighborhood.weather.current.temp_f + '°F');
+		vm.maxTemp(neighborhood.weather.forecast.forecastday[0].day.maxtemp_f + '°F');
+		vm.minTemp(neighborhood.weather.forecast.forecastday[0].day.mintemp_f + '°F');
 	}
 };
 
@@ -456,6 +481,7 @@ var initMap = function() {
 	$.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results){
 		neighborhood.weather = results;
 		neighborhood.calcTimeOffset();
+		vm.displayWeather();
 	});
 
 	/* Initiate the view-model */
