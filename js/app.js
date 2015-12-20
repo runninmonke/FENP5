@@ -402,28 +402,51 @@ var viewModel = function() {
 	/* Run filter places anytime the filterTerm changes */
 	vm.filterTerm.subscribe(vm.filterPlaces);
 
+	vm.dataSet = ko.observable('myNeighborhood');
+	vm.searchMsg = ko.observable('Search nearby');
+
 	/* Run a Google search for nearby places with current filterTerm */
-	vm.googleSearch = function(obj, evt) {
+	vm.keyHandler = function(obj, evt) {
 		if (evt.keyCode == 13 && evt.shiftKey == true) {
-			vm.removePlaces();
-			vm.createPlaces(locationData);
+			vm.reloadMyNeighborhood();
 		} else if (evt.keyCode == 13) {
-			vm.removePlaces();
-			detailService.nearbySearch({location: neighborhood.center, radius: NEARBY_SEARCH_RADIUS, name: vm.filterTerm()}, function(results, status){
-				if (status == google.maps.places.PlacesServiceStatus.OK) {
-					var workingArray = [];
-					for (var i in results) {
-						workingArray.push({
-							address: results[i].vicinity,
-							name: results[i].name,
-							latLng: results[i].geometry.location,
-							details: results[i]
-						});
-					}
-					vm.createPlaces(workingArray);
-				}
-			});
+			vm.googleSearch();
 		}
+	};
+
+	vm.clickHandler = function() {
+		if (vm.dataSet() == 'myNeighborhood') {
+			vm.googleSearch();
+			vm.searchMsg('Reload Neighbohood');
+		} else {
+			vm.reloadMyNeighborhood();
+			vm.searchMsg('Search nearby');
+		}
+	}
+
+	vm.reloadMyNeighborhood = function() {
+		vm.removePlaces();
+		vm.createPlaces(locationData);
+		vm.dataSet('myNeighborhood');
+	}
+
+	vm.googleSearch = function() {
+		vm.removePlaces();
+		detailService.nearbySearch({location: neighborhood.center, radius: NEARBY_SEARCH_RADIUS, name: vm.filterTerm()}, function(results, status){
+			if (status == google.maps.places.PlacesServiceStatus.OK) {
+				var workingArray = [];
+				for (var i in results) {
+					workingArray.push({
+						address: results[i].vicinity,
+						name: results[i].name,
+						latLng: results[i].geometry.location,
+						details: results[i]
+					});
+				}
+				vm.createPlaces(workingArray);
+			}
+		});
+		vm.dataSet('googleResults');
 	};
 
 	/* Used to remove all traces of current set of places in preparation for intializing another */
