@@ -382,6 +382,8 @@ var viewModel = function() {
 	/* Filter responds immediately to any change in the input element, so this limits the rate of updates */
 	vm.filterTerm.extend({ rateLimit: {timeout: FILTER_TIMEOUT, method: "notifyWhenChangesStop"}});
 
+	vm.noResultsMsg = ko.observable('hidden');
+
 	/* Filter current set of places by the filterTerm */
 	vm.filterPlaces = function() {
 		var workingArray = [];
@@ -397,12 +399,17 @@ var viewModel = function() {
 			}
 		}
 		vm.activePlaces(workingArray);
+
+		if (vm.activePlaces().length < 1) {
+			vm.noResultsMsg('');
+		} else {
+			vm.noResultsMsg('hidden');
+		}
 	};
 
 	/* Run filter places anytime the filterTerm changes */
 	vm.filterTerm.subscribe(vm.filterPlaces);
 
-	vm.dataSet = ko.observable('myNeighborhood');
 	vm.searchMsg = ko.observable('Search nearby');
 
 	/* Run a Google search for nearby places with current filterTerm */
@@ -415,19 +422,17 @@ var viewModel = function() {
 	};
 
 	vm.clickHandler = function() {
-		if (vm.dataSet() == 'myNeighborhood') {
+		if (vm.searchMsg() == 'Search nearby') {
 			vm.googleSearch();
-			vm.searchMsg('Reload Neighbohood');
 		} else {
 			vm.reloadMyNeighborhood();
-			vm.searchMsg('Search nearby');
 		}
 	}
 
 	vm.reloadMyNeighborhood = function() {
 		vm.removePlaces();
 		vm.createPlaces(locationData);
-		vm.dataSet('myNeighborhood');
+		vm.searchMsg('Search nearby');
 	}
 
 	vm.googleSearch = function() {
@@ -446,7 +451,7 @@ var viewModel = function() {
 				vm.createPlaces(workingArray);
 			}
 		});
-		vm.dataSet('googleResults');
+		vm.searchMsg('Reload Neighborhood');
 	};
 
 	/* Used to remove all traces of current set of places in preparation for intializing another */

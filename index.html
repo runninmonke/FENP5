@@ -31,6 +31,7 @@
 				<ul id="location-list" data-bind="foreach: activePlaces">
 					<li data-bind="text: name, click: $parent.changePlace, attr: {class: status}"></li>
 				</ul>
+				<p id="no-results" data-bind="attr: {class: noResultsMsg}"> No matches for filter. Hit "Enter" or click to search nearby. You can return to myNeighborhood by hitting "Shift + Enter" or clicking.</p>
 			</div>
 		</div>
 		<div id="hamburger" data-bind="attr: {class: menuStatus}, click: openMenu"><div id="icon">&#8801</div></div>
