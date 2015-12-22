@@ -1,10 +1,13 @@
-html, body {
+html,
+body {
   	height: 100%;
   	width: 100%;
   	margin: 0;
   	padding: 0;
   	background-color: #e9e5dc;
 }
+
+/* Map */
 
 #map {
   position: absolute;
@@ -19,6 +22,7 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Navigation side bar */
 
 #nav-bar {
   background: rgba(128, 128, 128, 0.2);
@@ -30,7 +34,7 @@ html, body {
   margin-left: -235px;
   overflow: auto;
   overflow-x: hidden;
-  font-family: arial, 'Helvetica Neue', helvetica, sans-serif
+  font-family: arial, "Helvetica Neue", helvetica, sans-serif
 }
 
 #nav-bar.open {
@@ -74,7 +78,6 @@ html, body {
   pointer-events: all;
   width: 225px;
   height: 43px;
-  margin: 0 auto;
   font-size: 1.4em;
   margin: 7px;
   border: none;
@@ -82,24 +85,24 @@ html, body {
 }
 
 .search-status {
-  font-family: arial, 'Helvetica Neue', helvetica, sans-serif;
-  color: white;
   width: 100%;
   display: flex;
   justify-content: flex-end;
 }
 
 .search-button {
+  color: white;
   font-size: 14px;
   font-weight: bold;
   background-color: rgba(128, 128, 128, 0.8);
-  display: inline-flex;
   padding: 5px;
   text-align: right;
   margin: -6px 15px 0 -0;
   border-radius: 0 0 2px 2px;
   pointer-events: all;
 }
+
+/* Weather */
 
 .weather {
   height: 105px;
@@ -155,6 +158,8 @@ html, body {
   color: #00b8e6;
 }
 
+/* Location list */
+
 .location-list li{
   padding: 7px;
 }
@@ -163,7 +168,6 @@ html, body {
   pointer-events: visiblePainted;
   list-style-type: none;
   color: black;
-  font-family: arial, 'Helvetica Neue', helvetica, sans-serif;
   margin: -25px 0 0-25px;
   font-size: 1.1em;
   /* Iterate text shadow to eliminate blur gradient and give thick outline effect */
@@ -185,7 +189,6 @@ html, body {
 
 #no-results {
   padding: 5px;
-  font-family: arial, 'Helvetica Neue', helvetica, sans-serif;
   color: white;
   text-shadow: -1px 0 1px #444, 0 1px 1px #444, 1px 0 1px #444, 0 -1px 1px #444, -1px -1px 1px #444, -1px 1px 1px #444, 1px -1px 1px #444, 1px 1px 1px #444, -1px 0 1px #444,
                 0 1px 1px #444, 1px 0 1px #444, 0 -1px 1px #444, -1px -1px 1px #444, -1px 1px 1px #444, 1px -1px 1px #444, 1px 1px 1px #444, -1px 0 1px #444, 0 1px 1px #444,
