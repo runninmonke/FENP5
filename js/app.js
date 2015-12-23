@@ -49,7 +49,7 @@ var contentTemplate = {
 var neighborhood = {
     name: "Midtown",
     center: {
-        lat: 41.263218,
+        lat: 41.266,
         lng: -95.987867
     },
     locality: "Omaha, NE",
@@ -353,9 +353,10 @@ var viewModel = function() {
     /* Use hard-coded data for initial set of places */
     vm.createPlaces(locationData);
 
-    /* Initialize menu in open position on large displays */
+    /* Show nav-bar and increase map zoom level on large displays */
     if (window.matchMedia("(min-width: 700px)").matches) {
         vm.menuStatus = ko.observable('open');
+        map.setZoom(14);
     } else {
         vm.menuStatus = ko.observable('closed');
     }
@@ -510,7 +511,7 @@ var initMap = function() {
     /* Initiate google map object */
     map = new google.maps.Map(document.getElementById('map'), {
         center: neighborhood.center,
-        zoom: 14,
+        zoom: 13,
         mapTypeControlOptions: {
             position: google.maps.ControlPosition.TOP_RIGHT
         }

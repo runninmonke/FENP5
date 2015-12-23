@@ -17,7 +17,7 @@ body {
 }
 
 .info-window {
-  margin: -15px 0 -5px 0;
+  margin: -15px 0 0 0;
   max-width: 200px;
   overflow-x: hidden;
 }
@@ -32,8 +32,7 @@ body {
   z-index: 1;
   pointer-events: none;
   margin-left: -235px;
-  overflow: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   font-family: arial, "Helvetica Neue", helvetica, sans-serif
 }
 
@@ -160,15 +159,23 @@ body {
 
 /* Location list */
 
+.filter-results {
+  /* Set the height of the element so the list is scrollable when the content exceeds the remaining screen space */
+  height: calc(100% - 150px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  pointer-events: visiblePainted;
+  margin-top: -25px;
+}
+
 .location-list li{
   padding: 7px;
 }
 
 .location-list {
-  pointer-events: visiblePainted;
   list-style-type: none;
   color: black;
-  margin: -25px 0 0-25px;
+  margin: 0 0 0-25px;
   font-size: 1.1em;
   /* Iterate text shadow to eliminate blur gradient and give thick outline effect */
   text-shadow: -2px 0 2px white, 0 2px 2px white, 2px 0 2px white, 0 -2px 2px white, -2px -2px 2px white, -2px 2px 2px white, 2px -2px 2px white, 2px 2px 2px white, -2px 0 2px white,
