@@ -1,28 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
 
-	<head>
-		<meta charset="utf-8">
-		<meta http-equiv="X-UA-Compatible" content="IE=edge">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<link href="fonts">
-		<title>myNeighborhood</title>
-		<link rel="stylesheet" href="http://normalize-css.googlecode.com/svn/trunk/normalize.css">
-		<link rel="stylesheet" href="css/css.css">
-	</head>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>myNeighborhood</title>
+    <link rel="stylesheet" href="http://normalize-css.googlecode.com/svn/trunk/normalize.css">
+    <link rel="stylesheet" href="css/css.css">
+</head>
 
-	<body>
-		<div id="nav-bar" data-bind="attr: {class: menuStatus}">
-			<input type="text" name="search" id="search-field" data-bind="textInput: searchTerm">
-			<ul id="location-list" data-bind="foreach: activePlaces">
-				<li data-bind="text: name, click: $parent.changePlace, attr: {class: status}"></li>
-			</ul>
-		</div>
-		<div id="hamburger" data-bind="attr: {class: menuStatus}, click: openMenu"><div id="icon">&#8801</div></div>
-		<div id="map" data-bind="markerClicks: places"></div>
-		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
-		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-		<script type="text/javascript" src="js/app.js"></script>
-		<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7LiznjiujsNwqvwGu7jMg6xVmnVTVSek&callback=initMap&libraries=places"></script>
-	</body>
+<body>
+    <div id="nav-bar" data-bind="attr: {class: menuStatus}">
+        <input type="text" class="search-field" data-bind="textInput: filterTerm, event: {keyup: keyHandler}">
+        <div class="search-status">
+            <div class="search-button" data-bind="text: searchMsg, click: clickHandler"></div>
+        </div>
+        <section class="weather">
+            <div class="cur-condition">
+                <img class="cond-img" data-bind="attr: {src: conditionImg}" alt=''>
+                <p class="cur-cond-text" data-bind="text: currentCondition">
+                    <p>
+            </div>
+            <div class="temps">
+                <p class="temp" data-bind="text: currentTemp"></p>
+                <p class="high-temp" data-bind="text: maxTemp"></p>
+                <p class='low-temp' data-bind="text: minTemp"></p>
+            </div>
+        </section>
+        <div class="filter-results">
+            <ul class="location-list" data-bind="foreach: activePlaces">
+                <li data-bind="text: name, click: $parent.changePlace, attr: {class: status}"></li>
+            </ul>
+            <p id="no-results" data-bind="attr: {class: noResultsMsg}">
+                No matches for filter. You can hit "Enter" to search nearby. You can hit "Shift + Enter" to reload myNeighborhood places.
+            </p>
+        </div>
+    </div>
+    <div id="hamburger" data-bind="attr: {class: menuStatus}, click: openMenu">
+        <div class="icon">≡</div>
+    </div>
+    <div id="map" data-bind="markerClicks: places"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="js/app.js"></script>
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7LiznjiujsNwqvwGu7jMg6xVmnVTVSek&callback=initMap&libraries=places"></script>
+</body>
+
 </html>
