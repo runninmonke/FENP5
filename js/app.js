@@ -185,7 +185,7 @@ Place.prototype.applySunTimes = function(data) {
 
     /* Calculate sunrise/set times in local time. Otherwise indicate they're in UTC */
     for (var i in this.sun) {
-        if (neighborhood.hasOwnProperty('weather')) {
+        if (!neighborhood.weather.hasOwnProperty('error')) {
             var origAMorPM = this.sun[i].split(' ')[1];
             var newAMorPM = origAMorPM;
             var origHour = Number(this.sun[i].split(':')[0]);
@@ -535,8 +535,10 @@ var initMap = function() {
     /* Use an API to get local weather info and call function to calculate the local time offset from UTC **/
     $.getJSON('https://api.apixu.com/v1/forecast.json?key=f7fc2a0c018f47c688b200705150412&q=' + neighborhood.center.lat + ',' + neighborhood.center.lng, function(results) {
         neighborhood.weather = results;
-        neighborhood.calcTimeOffset();
-        vm.displayWeather();
+        if (!neighborhood.weather.hasOwnProperty('error')) {
+            neighborhood.calcTimeOffset();
+            vm.displayWeather();
+        }
     }).fail(function() {
         alert('Local time and weather data not available');
     });
