@@ -344,22 +344,9 @@ var viewModel = function() {
         /* Copy to active places to immediately display list */
         vm.activePlaces(vm.places);
 
-        /* Call filter when data loaded to update activePlaces list and map markers */
-        $(document).ajaxStop(function() {
-            vm.filterPlaces();
-        });
+        /* Call filter to update activePlaces list and map markers */
+        vm.filterPlaces();
     };
-
-    /* Use hard-coded data for initial set of places */
-    vm.createPlaces(locationData);
-
-    /* Show nav-bar and increase map zoom level on large displays */
-    if (window.matchMedia("(min-width: 700px)").matches) {
-        vm.menuStatus = ko.observable('open');
-        map.setZoom(14);
-    } else {
-        vm.menuStatus = ko.observable('closed');
-    }
 
     /* Toggle menu nav-bar open and closed */
     vm.openMenu = function() {
@@ -504,6 +491,18 @@ var viewModel = function() {
         vm.maxTemp(neighborhood.weather.forecast.forecastday[0].day.maxtemp_f + '°F');
         vm.minTemp(neighborhood.weather.forecast.forecastday[0].day.mintemp_f + '°F');
     };
+
+
+    /* Initialize places with the hard-coded data */
+    vm.createPlaces(locationData);
+
+    /* Show nav-bar and increase map zoom level on large displays */
+    if (window.matchMedia("(min-width: 700px)").matches) {
+        vm.menuStatus = ko.observable('open');
+        map.setZoom(14);
+    } else {
+        vm.menuStatus = ko.observable('closed');
+    }
 };
 
 /* Callback function for the initial Google Maps API request */
