@@ -147,7 +147,7 @@ Place.prototype.createDetails = function() {
             self.applySunTimes(data);
         })
         .fail(function() {
-            alert('Sunset/sunrise times unavailable. Error accessing sunset-sunrise.org');
+            console.log('Sunset/sunrise times unavailable. Error accessing sunset-sunrise.org');
         });
 
     /* Skip getting details from google if they were passed in on place initialization and include the place id*/
@@ -173,7 +173,7 @@ Place.prototype.createDetails = function() {
 /* Callback for sunrise/set API */
 Place.prototype.applySunTimes = function(data) {
     if (data.status != 'OK') {
-        alert('Problem with sunset/sunrise data:' + data.status);
+        console.log('Problem with sunset/sunrise data:' + data.status);
         return;
     }
 
