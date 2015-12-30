@@ -22,7 +22,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Navigation side bar */
+/****** Navigation side bar ******/
 
 #nav-bar {
   background: rgba(128, 128, 128, 0.2);
@@ -74,12 +74,21 @@ body {
   color: rgba(128, 128, 128, 0.8);
 }
 
+/*** Search ***/
+
+.search-cont {
+  width: 225px;
+  height: 43px;
+  margin: 7px;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
 .search-field {
   pointer-events: all;
   width: 225px;
   height: 43px;
   font-size: 1.4em;
-  margin: 7px;
   border: none;
   border-radius: 2px;
 }
@@ -103,7 +112,7 @@ body {
   cursor: pointer;
 }
 
-/* Weather */
+/*** Weather ***/
 
 .weather {
   height: 105px;

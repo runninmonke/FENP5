@@ -12,7 +12,9 @@
 
 <body>
     <div id="nav-bar" data-bind="attr: {class: menuStatus}">
+        <div class="search-cont">
         <input type="text" class="search-field" data-bind="textInput: filterTerm, event: {keyup: keyHandler}">
+        </div>
         <div class="search-status">
             <div class="search-button" data-bind="text: searchMsg, click: clickHandler"></div>
         </div>
