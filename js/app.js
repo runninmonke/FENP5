@@ -136,10 +136,9 @@ Place.prototype.createDetails = function() {
         title: self.name
     });
 
-    /* Only place marker on map if place is active */
+    /* Remove marker from map if place not active */
     if (!self.active()) {
         self.marker.setMap(null);
-        console.log('why?');
     }
 
     /* Allow selected place to be changed by clicking map markers */
@@ -380,7 +379,7 @@ var viewModel = function() {
         return true;
     };
 
-    vm.filterTerm = ko.observable("");
+    vm.filterTerm = ko.observable('');
 
     /* Filter responds immediately to any change in the input element, so limit the rate of updates */
     vm.filterTerm.extend({
@@ -448,7 +447,6 @@ var viewModel = function() {
 
     /* Iniate a new set of places from the results of a nearBy Google Maps search and toggle search button message */
     vm.googleSearch = function() {
-        vm.removePlaces();
         detailService.nearbySearch({
             location: neighborhood.center,
             radius: NEARBY_SEARCH_RADIUS,
@@ -466,14 +464,16 @@ var viewModel = function() {
                 }
                 vm.createPlaces(workingArray);
             } else {
-            	vm.createPlaces([]);
+                vm.createPlaces([]);
             }
         });
+        vm.removePlaces();
         vm.searchMsg('Reload Neighborhood');
     };
 
     /* Used to remove all traces of current set of places in preparation for intializing another */
     vm.removePlaces = function() {
+        vm.filterTerm('');
         for (var i = 0; i < vm.places.length; i++) {
             vm.places[i].deselect();
             vm.places[i].deactivate();
