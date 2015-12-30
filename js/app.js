@@ -136,6 +136,12 @@ Place.prototype.createDetails = function() {
         title: self.name
     });
 
+    /* Only place marker on map if place is active */
+    if (!self.active()) {
+        self.marker.setMap(null);
+        console.log('why?');
+    }
+
     /* Allow selected place to be changed by clicking map markers */
     self.marker.addListener('click', function() {
         vm.changePlace(self);
@@ -277,10 +283,8 @@ Place.prototype.activate = function() {
 Place.prototype.deactivate = function() {
     if (this.active()) {
         this.active(false);
-        if (!this.hasOwnProperty('marker')) {
-            console.log(this);
-            return;
-        }
+    }
+    if (this.hasOwnProperty('marker')) {
         this.marker.setMap(null);
     }
 };
