@@ -13,10 +13,10 @@
 <body>
     <div id="nav-bar" data-bind="attr: {class: menuStatus}">
         <div class="search-cont">
-        <input type="text" class="search-field" data-bind="textInput: filterTerm, event: {keyup: keyHandler}">
+            <input type="text" class="search-field" data-bind="textInput: filterTerm, event: {keyup: keyHandler}">
         </div>
         <div class="search-status">
-            <div class="search-button" data-bind="text: searchMsg, click: clickHandler"></div>
+            <button type="button" class="search-button" data-bind="text: searchMsg, click: clickHandler"></button>
         </div>
         <section class="weather">
             <div class="cur-condition">
