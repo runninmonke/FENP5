@@ -36,14 +36,14 @@ body {
   font-family: arial, "Helvetica Neue", helvetica, sans-serif
 }
 
-#nav-bar.open {
-  transition: margin 0.3s;
-  margin-left: 0;
+.open {
+  transition: transform 0.3s;
+  transform: translate3d(235px, 0, 0);
 }
 
-#nav-bar.closed {
-  transition: margin 0.3s;
-  margin-left: -235px;
+.closed {
+  transition: transform 0.3s;
+  transform: translate3d(0, 0, 0);
 }
 
 #hamburger {
@@ -55,16 +55,6 @@ body {
   background:rgba(128, 128, 128, 0.2);
   border-radius: 0 2px 2px 0;
   cursor: pointer;
-}
-
-#hamburger.open {
-  transition: margin 0.3s;
-  margin: 3px 0 0 245px;
-}
-
-#hamburger.closed {
-  transition: margin 0.3s;
-  margin: 3px 0 0 10px;
 }
 
 .icon {
